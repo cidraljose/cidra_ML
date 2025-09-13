@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Datasets{% endblock %}
+{% block content %} 
+
+<h2>Gerenciamento de datasets</h2>
+
+<!-- List available datasets -->
+<h4>Dados disponíveis</h4>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            {% comment %} <th>Arquivo</th>  {% endcomment %}
+            <th>Descrição</th>
+            <th>Número de linhas</th>
+            <th>Colunas</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ds in datasets %}
+        <tr>
+            <td>{{ ds.name }}</td>
+            {% comment %} <td>{{ ds.file.name|slice:"9:" }}</td>  {# Remove 'datasets/' from file name #} {% endcomment %}
+            <td>{{ ds.description }}</td>            
+            <td>{{ ds.n_rows }}</td>
+            <td>
+                <ul>
+                    {% for col, type in ds.columns.items %}
+                        <li>{{ col }} ({{ type }})</li>
+                    {% endfor %}
+                </ul>
+            </td>
+            <td>
+                <a href="{% url 'visualize_dataset_view' ds.pk %}" class="btn btn-sm btn-info mb-2">Visualizar</a>
+                <a href="{% url 'download_dataset_view' ds.pk %}" 
+                   class="btn btn-sm btn-success mb-2">
+                    Download
+                </a>
+                <a href="{% url 'delete_dataset_view' ds.pk %}" 
+                   class="btn btn-sm btn-danger mb-2"
+                   onclick="return confirm('Tem certeza que deseja apagar permanentemente este dataset?');">
+                   Deletar
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">Nenhum dataset encontrado.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+<!-- Show upload form -->
+<h4>Adicionar novos dados</h4>
+<form method="post" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    
+    {% for field in upload_form %}
+        <div class="mb-3">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}
+                <small class="form-text text-muted">{{ field.help_text }}</small>
+            {% endif %}
+            {% for error in field.errors %}
+                <div class="alert alert-danger mt-1">{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
+    {% for error in upload_form.non_field_errors %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endfor %}
+
+    <button type="submit" name="upload_csv" class="btn btn-primary">Enviar Dataset</button>
+</form>
+
+{% endblock %}

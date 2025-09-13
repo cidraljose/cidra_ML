@@ -13,13 +13,16 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
-from django.conf import settings
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-HOME_DIR = os.path.join(settings.BASE_DIR, "home")
-MAN_DTS_DIR = os.path.join(settings.BASE_DIR, "manage_datasets")
-MAD_MOD_DIR = os.path.join(settings.BASE_DIR, "manage_models")
+
+HOME_DIR = os.path.join(BASE_DIR, "home")
+ABOUT_DIR = os.path.join(BASE_DIR, "about")
+MEDIA_DIR = os.path.join(BASE_DIR, "media")
+MAN_MODELS_DIR = os.path.join(BASE_DIR, "manage_models")
+MAN_DATASETS_DIR = os.path.join(BASE_DIR, "manage_datasets")
+DATASETS_DIR = os.path.join(MEDIA_DIR, "datasets")
+MODELS_DIR = os.path.join(MEDIA_DIR, "ml_models")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -34,7 +37,6 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -43,8 +45,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "home",
-    "manage_datasets",
+    "about",
     "manage_models",
+    "manage_datasets",
 ]
 
 MIDDLEWARE = [
@@ -62,7 +65,9 @@ ROOT_URLCONF = "cidra_ML.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ["templates"],
+        "DIRS": [
+            "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

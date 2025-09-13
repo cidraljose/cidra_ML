@@ -11,14 +11,14 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'home' %}">Home</a>
+        <a class="navbar-brand" href="{% url 'home_view' %}">Home</a>
         <div class="collapse navbar-collapse">
           <ul class="navbar-nav me-auto">
-            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'metadados' %}">Metadados 🔧</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'base_de_dados' %}">Dados 🎲</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'modelos' %}">Modelos 🤖</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'teste_modelo' %}">Teste 🧪</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'historico' %}">Histórico 📰</a></li> {% endcomment %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'manage_datasets_view' %}">Datasets 🎲</a></li>
+            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'modelos_view' %}">Models 🤖</a></li> {% endcomment %}
+            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'teste_modelo_view' %}">Teste 🧪</a></li> {% endcomment %}
+            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'historico_view' %}">Histórico 📰</a></li> {% endcomment %}
+            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'metadados_view' %}">Metadados 🔧</a></li> {% endcomment %}
           </ul>
         </div>
       </div>
