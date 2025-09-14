@@ -32,7 +32,11 @@
                 </ul>
             </td>
             <td>
-                <a href="{% url 'visualize_dataset_view' ds.pk %}" class="btn btn-sm btn-info mb-2">Visualizar</a>
+                <button type="button" 
+                        class="btn btn-sm btn-info mb-2 visualize-btn" 
+                        data-url="{% url 'visualize_dataset_view' ds.pk %}">
+                    Visualizar
+                </button>
                 <a href="{% url 'download_dataset_view' ds.pk %}" 
                    class="btn btn-sm btn-success mb-2">
                     Download
@@ -51,6 +55,9 @@
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Container for visualizations -->
+<div id="visualization-container" class="mt-4"></div>
 
 
 <!-- Show upload form -->
@@ -78,4 +85,35 @@
     <button type="submit" name="upload_csv" class="btn btn-primary">Enviar Dataset</button>
 </form>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const visualizationContainer = document.getElementById('visualization-container');
+    const visualizeButtons = document.querySelectorAll('.visualize-btn');
+
+    visualizeButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const url = this.dataset.url;
+
+            // Show a loading message
+            visualizationContainer.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <strong class="ms-3">Generating visualizations...</strong>
+                </div>`;
+
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    visualizationContainer.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error fetching visualization:', error);
+                    visualizationContainer.innerHTML = '<div class="alert alert-danger">Could not load visualizations. Please try again.</div>';
+                });
+        });
+    });
+});
+</script>
 {% endblock %}

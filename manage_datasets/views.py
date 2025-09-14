@@ -1,10 +1,11 @@
 """Datasets page"""
 
+import base64
 import io
-import json
 import os
 import uuid
 
+import matplotlib.pyplot as plt
 import pandas as pd
 from django.conf import settings
 from django.http import HttpResponse
@@ -130,20 +131,20 @@ def download_dataset(request, dataset_id):
     return redirect("manage_datasets_view")
 
 
-def visualize_dataset(request, dataset_id):
+def visualize_dataset(request, dataset_id):  # Renamed from pk to dataset_id for clarity
     """
     Visualize a dataset by its ID.
     """
 
     # Assure dataset exists
     try:
-        dataset_obj = Dataset.objects.get(id=dataset_id)
+        dataset_obj = Dataset.objects.get(pk=dataset_id)
     except Dataset.DoesNotExist:
         return redirect("manage_datasets_view")  # Or render an error page
 
     file_path = os.path.join(settings.DATASETS_DIR, dataset_obj.file.name)
     dataset_df = pd.read_csv(
-        file_path, sep=dataset_obj.separator, encoding=dataset_obj.encoding
+        file_path, sep=",", encoding="utf-8"  # Standardized on upload
     )
 
     # Generate stats
@@ -151,14 +152,13 @@ def visualize_dataset(request, dataset_id):
     stats["description"] = dataset_df.describe().to_html(
         classes="table table-striped table-bordered"
     )
-    stats["info"] = dataset_df.info(buf=None)
     buffer = io.StringIO()
     dataset_df.info(buf=buffer)
     stats["info"] = buffer.getvalue()
 
     # Generate plots for numerical columns
     plots = {}
-    numerical_cols = dataset_df.select_dtypes(include=["number"]).columns
+    numerical_cols = dataset_df.select_dtypes(include=["number"]).columns.tolist()
     for col in numerical_cols:
         plots[f"hist_{col}"] = create_histogram(dataset_df, col)
         plots[f"box_{col}"] = create_boxplot(dataset_df, col)
@@ -166,11 +166,10 @@ def visualize_dataset(request, dataset_id):
         plots["correlation_heatmap"] = create_correlation_heatmap(
             dataset_df, numerical_cols
         )
-        # plots["pairplot"] = create_pairplot(dataset_df, numerical_cols)
-        # plots["scatter_matrix"] = create_scatter_matrix(dataset_df, numerical_cols)
 
     # Generate plots for categorical columns
-    categorical_cols = dataset_df.select_dtypes(include=["category"]).columns
+    # Use 'object' as pandas often reads categorical data as object type from CSV
+    categorical_cols = dataset_df.select_dtypes(include=["object"]).columns.tolist()
     for col in categorical_cols:
         plots[f"count_{col}"] = create_countplot(dataset_df, col)
 
@@ -179,12 +178,7 @@ def visualize_dataset(request, dataset_id):
         "plots": plots,
         "stats": stats,
         "head": dataset_df.head().to_html(classes="table table-striped table-bordered"),
-        "shape": dataset_df.shape,
-        "columns_info": (
-            json.loads(dataset_obj.columns)
-            if isinstance(dataset_obj.columns, str)
-            else dataset_obj.columns
-        ),
     }
 
-    return render(request, "visualize_dataset.html", context)
+    # Render the partial template, which will be fetched by the AJAX call
+    return render(request, "_visualize_dataset_partial.html", context)
