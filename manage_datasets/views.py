@@ -1,11 +1,9 @@
 """Datasets page"""
 
-import base64
-import io
+# import io
 import os
 import uuid
 
-import matplotlib.pyplot as plt
 import pandas as pd
 from django.conf import settings
 from django.http import HttpResponse
@@ -145,25 +143,25 @@ def visualize_dataset(request, dataset_id):
     file_path = os.path.join(settings.DATASETS_DIR, dataset_obj.file.name)
     dataset_df = pd.read_csv(file_path)
 
-    # # Generate stats
-    # stats = {}
-    # stats["description"] = dataset_df.describe().to_html(
-    #     classes="table table-striped table-bordered"
-    # )
-    # buffer = io.StringIO()
-    # dataset_df.info(buf=buffer)
-    # stats["info"] = buffer.getvalue()
+    # Generate stats
+    stats = {}
+    stats["description"] = dataset_df.describe().to_html(
+        classes="table table-striped table-bordered"
+    )
+    buffer = io.StringIO()
+    dataset_df.info(buf=buffer)
+    stats["info"] = buffer.getvalue()
 
     # Generate plots for numerical columns
     plots = {}
     numerical_cols = dataset_df.select_dtypes(include=["number"]).columns.tolist()
-    for col in numerical_cols:
-        plots[f"hist_{col}"] = create_histogram(dataset_df, col)
-        plots[f"box_{col}"] = create_boxplot(dataset_df, col)
-    if len(numerical_cols) > 1:
+    if numerical_cols:
+        plots["pdf_plot"] = create_pdf_plot(dataset_df, numerical_cols)
         plots["correlation_heatmap"] = create_correlation_heatmap(
             dataset_df, numerical_cols
         )
+        for col in numerical_cols:
+            plots[f"histo_{col}"] = create_histogram(dataset_df, col)
 
     # Generate plots for categorical columns
     categorical_cols = dataset_df.select_dtypes(include=["object"]).columns.tolist()
@@ -173,7 +171,7 @@ def visualize_dataset(request, dataset_id):
     context = {
         "dataset": dataset_obj,
         "plots": plots,
-        # "stats": stats,
+        "stats": stats,
         "head": dataset_df.head().to_html(classes="table table-striped table-bordered"),
     }
 
