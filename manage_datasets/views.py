@@ -131,7 +131,7 @@ def download_dataset(request, dataset_id):
     return redirect("manage_datasets_view")
 
 
-def visualize_dataset(request, dataset_id):  # Renamed from pk to dataset_id for clarity
+def visualize_dataset(request, dataset_id):
     """
     Visualize a dataset by its ID.
     """
@@ -143,18 +143,16 @@ def visualize_dataset(request, dataset_id):  # Renamed from pk to dataset_id for
         return redirect("manage_datasets_view")  # Or render an error page
 
     file_path = os.path.join(settings.DATASETS_DIR, dataset_obj.file.name)
-    dataset_df = pd.read_csv(
-        file_path, sep=",", encoding="utf-8"  # Standardized on upload
-    )
+    dataset_df = pd.read_csv(file_path)
 
-    # Generate stats
-    stats = {}
-    stats["description"] = dataset_df.describe().to_html(
-        classes="table table-striped table-bordered"
-    )
-    buffer = io.StringIO()
-    dataset_df.info(buf=buffer)
-    stats["info"] = buffer.getvalue()
+    # # Generate stats
+    # stats = {}
+    # stats["description"] = dataset_df.describe().to_html(
+    #     classes="table table-striped table-bordered"
+    # )
+    # buffer = io.StringIO()
+    # dataset_df.info(buf=buffer)
+    # stats["info"] = buffer.getvalue()
 
     # Generate plots for numerical columns
     plots = {}
@@ -168,7 +166,6 @@ def visualize_dataset(request, dataset_id):  # Renamed from pk to dataset_id for
         )
 
     # Generate plots for categorical columns
-    # Use 'object' as pandas often reads categorical data as object type from CSV
     categorical_cols = dataset_df.select_dtypes(include=["object"]).columns.tolist()
     for col in categorical_cols:
         plots[f"count_{col}"] = create_countplot(dataset_df, col)
@@ -176,9 +173,8 @@ def visualize_dataset(request, dataset_id):  # Renamed from pk to dataset_id for
     context = {
         "dataset": dataset_obj,
         "plots": plots,
-        "stats": stats,
+        # "stats": stats,
         "head": dataset_df.head().to_html(classes="table table-striped table-bordered"),
     }
 
-    # Render the partial template, which will be fetched by the AJAX call
     return render(request, "_visualize_dataset_partial.html", context)
