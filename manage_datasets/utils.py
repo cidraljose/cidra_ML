@@ -55,9 +55,10 @@ def create_correlation_heatmap(df, numerical_cols):
 def create_countplot(df, column):
     """Generates a count plot for a given categorical column."""
     fig, ax = plt.subplots()
-    sns.countplot(y=df[column], ax=ax, order=df[column].value_counts().index)
-    ax.xaxis.set_label_text("Quantidade")
-    ax.yaxis.set_label_text(f'Tipo de "{column}"')
+    sns.countplot(x=df[column], ax=ax, order=df[column].value_counts().index)
+    ax.yaxis.set_label_text("Quantidade")
+    ax.xaxis.set_label_text("Tipo")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
     fig.tight_layout()
     return fig_to_base64(fig)
 
@@ -95,5 +96,17 @@ def create_pdf_plot(df, numerical_cols):
     fig, ax = plt.subplots(figsize=(12, 7))
     for col in numerical_cols:
         sns.kdeplot(df[col], ax=ax, label=col, fill=True, alpha=0.2)
+    ax.legend()
+    return fig_to_base64(fig)
+
+
+def create_normalized_pdf_plot(df, numerical_cols):
+    """Generates a single plot with PDF/KDE for all numerical columns after normalization."""
+    fig, ax = plt.subplots(figsize=(12, 7))
+    for col in numerical_cols:
+        normalized_data = (df[col] - df[col].mean()) / df[col].std()
+        sns.kdeplot(
+            normalized_data, ax=ax, label=f"{col} (Normalized)", fill=True, alpha=0.2
+        )
     ax.legend()
     return fig_to_base64(fig)

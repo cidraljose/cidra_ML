@@ -1,6 +1,6 @@
 """Datasets page"""
 
-# import io
+import io
 import os
 import uuid
 
@@ -11,7 +11,12 @@ from django.shortcuts import redirect, render
 
 from .forms import UploadCSVForm
 from .models import Dataset
-from .utils import *
+from .utils import (
+    create_correlation_heatmap,
+    create_countplot,
+    create_histogram,
+    create_pdf_plot,
+)
 
 
 def manage_datasets(request):
@@ -91,15 +96,13 @@ def delete_dataset(request, dataset_id):
     """
     try:
         dataset = Dataset.objects.get(id=dataset_id)
-
         if dataset.file:
             file_path = os.path.join(settings.DATASETS_DIR, dataset.file.name)
             if os.path.exists(file_path):
                 os.remove(file_path)
-
         dataset.delete()
     except Dataset.DoesNotExist:
-        pass  # Handle error - to implement
+        pass  # To implement
 
     return redirect("manage_datasets_view")
 
@@ -112,7 +115,6 @@ def download_dataset(request, dataset_id):
         dataset = Dataset.objects.get(id=dataset_id)
 
         if dataset.file:
-            # FIX: Use the correct directory where datasets are stored
             file_path = os.path.join(settings.DATASETS_DIR, dataset.file.name)
             if os.path.exists(file_path):
                 with open(file_path, "rb") as f:
@@ -124,7 +126,7 @@ def download_dataset(request, dataset_id):
                     )
                     return response
     except Dataset.DoesNotExist:
-        pass  # Handle error - to implement
+        pass  # To implement
 
     return redirect("manage_datasets_view")
 
@@ -132,47 +134,77 @@ def download_dataset(request, dataset_id):
 def visualize_dataset(request, dataset_id):
     """
     Visualize a dataset by its ID.
-    """
+    Saves generated plots and stats in the database for future access.
 
+    Statistics:
+        - Descriptive statistics
+        - Info summary
+    Plots for numerical columns:
+        - PDF plots
+        - Correlation heatmap
+    Plots for categorical columns:
+        - Count plots
+    """
     # Assure dataset exists
     try:
         dataset_obj = Dataset.objects.get(pk=dataset_id)
     except Dataset.DoesNotExist:
-        return redirect("manage_datasets_view")  # Or render an error page
+        return redirect("manage_datasets_view")
 
-    file_path = os.path.join(settings.DATASETS_DIR, dataset_obj.file.name)
-    dataset_df = pd.read_csv(file_path)
+    # Check if context is cached
+    if (
+        dataset_obj.plots_context
+        and dataset_obj.stats_context
+        and dataset_obj.head_context
+    ):
+        context = {
+            "dataset": dataset_obj,
+            "plots": dataset_obj.plots_context,
+            "stats": dataset_obj.stats_context,
+            "head": dataset_obj.head_context,
+        }
+    else:  # generate, save, and then display
+        file_path = os.path.join(settings.DATASETS_DIR, dataset_obj.file.name)
+        dataset_df = pd.read_csv(file_path)
 
-    # Generate stats
-    stats = {}
-    stats["description"] = dataset_df.describe().to_html(
-        classes="table table-striped table-bordered"
-    )
-    buffer = io.StringIO()
-    dataset_df.info(buf=buffer)
-    stats["info"] = buffer.getvalue()
-
-    # Generate plots for numerical columns
-    plots = {}
-    numerical_cols = dataset_df.select_dtypes(include=["number"]).columns.tolist()
-    if numerical_cols:
-        plots["pdf_plot"] = create_pdf_plot(dataset_df, numerical_cols)
-        plots["correlation_heatmap"] = create_correlation_heatmap(
-            dataset_df, numerical_cols
+        # Stats
+        stats = {}
+        stats["description"] = dataset_df.describe().to_html(
+            classes="table table-striped table-bordered"
         )
-        for col in numerical_cols:
-            plots[f"histo_{col}"] = create_histogram(dataset_df, col)
+        buffer = io.StringIO()
+        dataset_df.info(buf=buffer)
+        stats["info"] = buffer.getvalue()
 
-    # Generate plots for categorical columns
-    categorical_cols = dataset_df.select_dtypes(include=["object"]).columns.tolist()
-    for col in categorical_cols:
-        plots[f"count_{col}"] = create_countplot(dataset_df, col)
+        # Numerial columns plots
+        plots = {}
+        numerical_cols = dataset_df.select_dtypes(include=["number"]).columns.tolist()
+        if numerical_cols:
+            plots["pdf_plot"] = create_pdf_plot(dataset_df, numerical_cols)
+            plots["correlation_heatmap"] = create_correlation_heatmap(
+                dataset_df, numerical_cols
+            )
+            for col in numerical_cols:
+                plots[f"histo_{col}"] = create_histogram(dataset_df, col)
 
-    context = {
-        "dataset": dataset_obj,
-        "plots": plots,
-        "stats": stats,
-        "head": dataset_df.head().to_html(classes="table table-striped table-bordered"),
-    }
+        # Categorical columns plots
+        categorical_cols = dataset_df.select_dtypes(include=["object"]).columns.tolist()
+        for col in categorical_cols:
+            plots[f"count_{col}"] = create_countplot(dataset_df, col)
+
+        # Save context
+        dataset_obj.plots_context = plots
+        dataset_obj.stats_context = stats
+        dataset_obj.head_context = dataset_df.head().to_html(
+            classes="table table-striped table-bordered"
+        )
+        dataset_obj.save()
+
+        context = {
+            "dataset": dataset_obj,
+            "plots": plots,
+            "stats": stats,
+            "head": dataset_obj.head_context,
+        }
 
     return render(request, "_visualize_dataset_partial.html", context)

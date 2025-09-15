@@ -3,3 +3,4 @@
 __pypackages__/
 __pycache__/
 media/
+db.sqlite3

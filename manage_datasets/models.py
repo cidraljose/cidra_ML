@@ -47,5 +47,18 @@ class Dataset(models.Model):
         help_text="User who uploaded the dataset",
     )
 
+    # Context for visualization
+    plots_context = models.JSONField(
+        blank=True, null=True, help_text="Cached plots for visualization"
+    )
+    stats_context = models.JSONField(
+        blank=True, null=True, help_text="Cached stats for visualization"
+    )
+    head_context = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Cached HTML for the head of the dataset for visualization",
+    )
+
     def __str__(self):
         return str(self.name)
