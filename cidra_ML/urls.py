@@ -22,5 +22,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("home.urls")),
     path("", include("manage_datasets.urls")),
-    # path("manage_models/", include("manage_models.urls")),
+    path("", include("manage_MLmodels.urls")),
 ]

@@ -16,24 +16,21 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HOME_DIR = os.path.join(BASE_DIR, "home")
-ABOUT_DIR = os.path.join(BASE_DIR, "about")
-MEDIA_DIR = os.path.join(BASE_DIR, "media")
-MAN_MODELS_DIR = os.path.join(BASE_DIR, "manage_models")
-MAN_DATASETS_DIR = os.path.join(BASE_DIR, "manage_datasets")
-DATASETS_DIR = os.path.join(MEDIA_DIR, "datasets")
-MODELS_DIR = os.path.join(MEDIA_DIR, "ml_models")
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-8=lra$0ric7thr70h3!$dqt#m$z=0nv926z45b2#-x0p2j9+xc"
+# It's recommended to load the secret key from an environment variable
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-8=lra$0ric7thr70h3!$dqt#m$z=0nv926z45b2#-x0p2j9+xc",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # Application definition
@@ -46,8 +43,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "home",
     "about",
-    "manage_models",
+    "manage_MLmodels",
     "manage_datasets",
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -129,8 +127,25 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Media files (user-uploaded datasets and models)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Custom directory for datasets
+DATASETS_DIR = MEDIA_ROOT / "datasets"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# CELERY SETTINGS
+# Use a self-contained SQLite file as the broker for local development
+CELERY_BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
+# Use the django-celery-results backend to store results in the main database
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"

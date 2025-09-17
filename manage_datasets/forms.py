@@ -1,5 +1,5 @@
 """
-Formularios de manage_datasets
+Forms for manage_datasets app
 """
 
 from django import forms
@@ -7,7 +7,7 @@ from django import forms
 
 class UploadCSVForm(forms.Form):
     """
-    Formulario para upload de datasets em formatode arquivo CSV.
+    Form for uploading CSV datasets.
     """
 
     file = forms.FileField(label="Arquivo CSV")

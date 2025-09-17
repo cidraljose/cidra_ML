@@ -6,12 +6,12 @@ import uuid
 
 import pandas as pd
 from django.conf import settings
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import UploadCSVForm
 from .models import Dataset
-from .utils import (
+from .plots import (
     create_correlation_heatmap,
     create_countplot,
     create_histogram,
@@ -71,7 +71,7 @@ def manage_datasets(request):
 
                 Dataset.objects.create(
                     name=name,
-                    file=csv_filename,
+                    file=os.path.join("", csv_filename),
                     separator=",",
                     encoding="utf-8",
                     columns=columns_info,

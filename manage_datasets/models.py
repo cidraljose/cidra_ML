@@ -6,7 +6,7 @@ from django.db import models
 
 class Dataset(models.Model):
     """
-    Modelo para armazenamento de datasets
+    Model for storing datasets
     """
 
     # Atribute filled by user on form
