@@ -1,5 +1,6 @@
 import json
 import os
+import zipfile
 
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -116,8 +117,7 @@ def manage_MLmodels(request):
                 return redirect("manage_MLmodels_view")
 
     # Invalid GET or POST -> prepare forms
-    if upload_form is None:
-        upload_form = UploadMLModelForm(prefix="upload")
+    upload_form = upload_form or UploadMLModelForm(prefix="upload")
 
     if train_form is None:
         # If ?train-dataset=ID came in GET, pre-populate choices
@@ -178,12 +178,28 @@ def download_MLmodel(request, MLmodel_id):
     """
     model_obj = get_object_or_404(MLModel, id=MLmodel_id)
     if model_obj.file and os.path.exists(model_obj.file.path):
-        with open(model_obj.file.path, "rb") as f:
-            response = HttpResponse(f.read(), content_type="application/zip")
-            response["Content-Disposition"] = (
-                f'attachment; filename="{os.path.basename(model_obj.file.name)}"'
-            )
-            return response
+        model_dir = os.path.dirname(model_obj.file.path)
+
+        # Create a zip file containing the entire directory
+        zip_filename = (
+            f"{os.path.splitext(os.path.basename(model_obj.file.name))[0]}.zip"
+        )
+        with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(model_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, model_dir))
+
+        # Read the zip file into memory
+        with open(zip_filename, "rb") as f:
+            zip_data = f.read()
+        os.remove(zip_filename)
+
+        response = HttpResponse(zip_data, content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
+
+        return response
+
     raise Http404("File does not exist or was not found.")
 
 
