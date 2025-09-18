@@ -11,14 +11,14 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'home_view' %}">Home</a>
+        <a class="navbar-brand" href="{% url 'home_view' %}">Home 🍋</a>
         <div class="collapse navbar-collapse">
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{% url 'manage_datasets_view' %}">Datasets 🎲</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'manage_MLmodels_view' %}">Models 🤖</a></li>
-            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'teste_modelo_view' %}">Teste 🧪</a></li> {% endcomment %}
-            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'historico_view' %}">Histórico 📰</a></li> {% endcomment %}
-            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'metadados_view' %}">Metadados 🔧</a></li> {% endcomment %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'testing_view' %}">Testing 🧪</a></li>
+            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'testing_view' %}">Predicting 🔮</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'historico_view' %}">Histórico 📰</a></li> {% endcomment %}
           </ul>
         </div>
       </div>
@@ -37,13 +37,18 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Tries to locate by IDs (prefix 'train') or by name if ID doesn't exist
-    const datasetSelect = document.getElementById('id_train-dataset') || document.querySelector('select[name="train-dataset"]');
-    const targetSelect = document.getElementById('id_train-target') || document.querySelector('select[name="train-target"]');
-    const featuresSelect = document.getElementById('id_train-features') || document.querySelector('select[name="train-features"]');
+    // This script dynamically populates target/feature selects based on the chosen dataset.
+    // It should work with forms that have prefixed fields and forms that don't
+    
+    // Selects a field with the exact name OR a name ending in '-fieldname'.
+    // This handles both 'dataset' and 'train-dataset'.
+    const datasetSelect = document.querySelector('select[name="dataset"], select[name$="-dataset"]');
+    const targetSelect = document.querySelector('select[name="target"], select[name$="-target"]');
+    const featuresSelect = document.querySelector('select[name="features"], select[name$="-features"]');
 
-    if (!datasetSelect || !targetSelect || !featuresSelect) {
-        console.warn('Elementos do form não encontrados:', {datasetSelect, targetSelect, featuresSelect});
+    // The features select is optional 
+    if (!datasetSelect || !targetSelect) {
+        console.warn('Dataset or Target select not found. Aborting dynamic population script.');
         return;
     }
 
@@ -60,11 +65,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function clearAndShowLoading() {
         targetSelect.innerHTML = '<option value="">Loading...</option>';
-        featuresSelect.innerHTML = '';
+        if (featuresSelect) {
+            featuresSelect.innerHTML = '';
+        }
     }
 
     function populateSelects(columns) {
-        // target
         targetSelect.innerHTML = '';
         const emptyOp = document.createElement('option');
         emptyOp.value = '';
@@ -82,22 +88,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (opt) opt.selected = true;
         }
 
-        featuresSelect.innerHTML = '';
-        // Features (multiple)
-        columns.forEach(col => {
-            const opt = new Option(col, col);
-            // marca se estava selecionado antes (serverSelectedFeatures é array)
-            if (Array.isArray(serverSelectedFeatures) && serverSelectedFeatures.indexOf(col) !== -1) {
-                opt.selected = true;
-            }
-            featuresSelect.appendChild(opt);
-        });
+        // Features (multiple), if the element exists
+        if (featuresSelect) {
+            featuresSelect.innerHTML = '';
+            columns.forEach(col => {
+                const opt = new Option(col, col);
+                // Mark as selected if it was selected before (serverSelectedFeatures is an array)
+                if (Array.isArray(serverSelectedFeatures) && serverSelectedFeatures.indexOf(col) !== -1) {
+                    opt.selected = true;
+                }
+                featuresSelect.appendChild(opt);
+            });
+        }
     }
 
     function fetchAndPopulate(datasetId) {
         if (!datasetId) {
             targetSelect.innerHTML = '<option value="">Select a dataset first</option>';
-            featuresSelect.innerHTML = '';
+            if (featuresSelect) featuresSelect.innerHTML = '';
             return;
         }
         const url = buildUrl(datasetId);
@@ -113,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cols = Array.isArray(data.columns) ? data.columns : [];
                 if (cols.length === 0) {
                     targetSelect.innerHTML = '<option value="">No columns found</option>';
-                    featuresSelect.innerHTML = '';
+                    if (featuresSelect) featuresSelect.innerHTML = '';
                     return;
                 }
                 populateSelects(cols);
@@ -121,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => {
                 console.error('Error fetching columns:', err);
                 targetSelect.innerHTML = '<option value="">Error loading columns</option>';
-                featuresSelect.innerHTML = '';
+                if (featuresSelect) featuresSelect.innerHTML = '';
             });
     }
 
@@ -130,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchAndPopulate(this.value);
     });
 
-    // auto-popula ao carregar caso já haja um dataset selecionado (ex.: reload com form com erro)
+    // Auto-populate on page load if a dataset is already selected (e.g., on a form error reload)
     if (datasetSelect.value) {
         fetchAndPopulate(datasetSelect.value);
     }

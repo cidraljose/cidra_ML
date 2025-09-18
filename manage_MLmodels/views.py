@@ -1,7 +1,10 @@
 import json
 import os
+import shutil
+import tempfile
 import zipfile
 
+from django.conf import settings
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
@@ -63,22 +66,70 @@ def manage_MLmodels(request):
                 request.POST, request.FILES, prefix="upload"
             )
             if upload_form.is_valid():
-                MLModel.objects.create(
-                    name=upload_form.cleaned_data["name"],
-                    description=upload_form.cleaned_data["description"],
-                    target=upload_form.cleaned_data["target"],
-                    file=upload_form.cleaned_data["file"],
-                    related_dataset=upload_form.cleaned_data["related_dataset"],
-                    uploaded_by=None,  # No user auth for now
-                    status="COMPLETED",
-                )
+                uploaded_file = upload_form.cleaned_data["file"]
+                model_name = upload_form.cleaned_data["name"]
+
+                # Handle zipped AutoGluon model directories
+                if uploaded_file.name.endswith(".zip"):
+                    model_storage_path = os.path.join("MLmodels", model_name)
+                    final_model_dir = os.path.join(
+                        settings.MEDIA_ROOT, model_storage_path
+                    )
+
+                    if os.path.exists(final_model_dir):
+                        upload_form.add_error(
+                            "name",
+                            "A model directory with this name already exists. Please choose a different name.",
+                        )
+                    else:
+                        with tempfile.TemporaryDirectory() as tmpdir:
+                            try:
+                                with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
+                                    zip_ref.extractall(tmpdir)
+
+                                # Check for a single root folder inside the zip
+                                extracted_items = os.listdir(tmpdir)
+                                source_dir = tmpdir
+                                if len(extracted_items) == 1 and os.path.isdir(
+                                    os.path.join(tmpdir, extracted_items[0])
+                                ):
+                                    source_dir = os.path.join(
+                                        tmpdir, extracted_items[0]
+                                    )
+
+                                # Copy the contents to the final destination
+                                shutil.copytree(source_dir, final_model_dir)
+
+                                MLModel.objects.create(
+                                    name=model_name,
+                                    description=upload_form.cleaned_data["description"],
+                                    target=upload_form.cleaned_data["target"],
+                                    file=model_storage_path,
+                                    related_dataset=upload_form.cleaned_data[
+                                        "related_dataset"
+                                    ],
+                                    status="COMPLETED",
+                                )
+                            except Exception as e:
+                                upload_form.add_error(
+                                    "file", f"Failed to process zip file: {e}"
+                                )
+                else:
+                    # Handle non-zip files (or show an error if only zips are allowed)
+                    upload_form.add_error(
+                        "file", "Invalid file type. Only .zip archives are allowed."
+                    )
+
+            # If form is still valid (no errors added), redirect
+            if upload_form.is_valid():
                 return redirect("manage_MLmodels_view")
+
         # Train
         elif "train_model" in request.POST:
             train_form = TrainMLModelForm(request.POST, prefix="train")
             dataset_id = request.POST.get("train-dataset")
 
-            # Populate choices (necessary for validation and the template)
+            # Populate choices
             if dataset_id:
                 try:
                     dataset = Dataset.objects.get(pk=dataset_id)
@@ -163,10 +214,10 @@ def delete_MLmodel(request, MLmodel_id):
     """
     model_obj = get_object_or_404(MLModel, id=MLmodel_id)
 
-    # No auth check for now
-    if model_obj.file:
-        if os.path.exists(model_obj.file.path):
-            os.remove(model_obj.file.path)
+    # If the model has an associated directory, remove it.
+    if model_obj.file and model_obj.file.path and os.path.exists(model_obj.file.path):
+        # Use shutil.rmtree for directories
+        shutil.rmtree(model_obj.file.path, ignore_errors=True)
     model_obj.delete()
 
     return redirect("manage_MLmodels_view")
@@ -178,22 +229,32 @@ def download_MLmodel(request, MLmodel_id):
     """
     model_obj = get_object_or_404(MLModel, id=MLmodel_id)
     if model_obj.file and os.path.exists(model_obj.file.path):
-        model_dir = os.path.dirname(model_obj.file.path)
+        base_dir = model_obj.file.path
+        zip_root = base_dir
+
+        # Auto-detect if there's a single directory inside the main one.
+        dir_contents = os.listdir(base_dir)
+        if len(dir_contents) == 1 and os.path.isdir(
+            os.path.join(base_dir, dir_contents[0])
+        ):
+            zip_root = os.path.join(base_dir, dir_contents[0])
 
         # Create a zip file containing the entire directory
-        zip_filename = (
-            f"{os.path.splitext(os.path.basename(model_obj.file.name))[0]}.zip"
-        )
-        with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for root, _, files in os.walk(model_dir):
+        zip_filename = f"{model_obj.name}.zip"
+
+        # Create the zip in a temporary file to avoid conflicts
+        tmp_zip_path = os.path.join(tempfile.gettempdir(), zip_filename)
+
+        with zipfile.ZipFile(tmp_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(zip_root):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    zipf.write(file_path, os.path.relpath(file_path, model_dir))
+                    zipf.write(file_path, os.path.relpath(file_path, zip_root))
 
         # Read the zip file into memory
-        with open(zip_filename, "rb") as f:
+        with open(tmp_zip_path, "rb") as f:
             zip_data = f.read()
-        os.remove(zip_filename)
+        os.remove(tmp_zip_path)
 
         response = HttpResponse(zip_data, content_type="application/zip")
         response["Content-Disposition"] = f'attachment; filename="{zip_filename}"'

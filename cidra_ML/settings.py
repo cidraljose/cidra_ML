@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "manage_MLmodels",
     "manage_datasets",
     "django_celery_results",
+    "testing",
+    # "predicting",
 ]
 
 MIDDLEWARE = [
@@ -133,8 +135,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Custom directory for datasets
+# Custom directory for datasets and models
 DATASETS_DIR = MEDIA_ROOT / "datasets"
+MODELS_DIR = MEDIA_ROOT / "MLmodels"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

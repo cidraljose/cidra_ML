@@ -23,4 +23,6 @@ urlpatterns = [
     path("", include("home.urls")),
     path("", include("manage_datasets.urls")),
     path("", include("manage_MLmodels.urls")),
+    path("", include("testing.urls")),
+    # path("", include("predicting.urls")),
 ]
