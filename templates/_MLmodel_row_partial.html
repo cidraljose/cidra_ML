@@ -11,6 +11,15 @@
     {% endif %}
 </td>
 <td>{{ model.related_dataset.name|default:"N/A" }}</td>
+<td>
+    {% if model.features %}
+        {# Display features as a comma-separated list #}
+        <small>{{ model.features|join:", " }}</small>
+    {% else %}
+        <span class="text-muted">N/A</span>
+    {% endif %}
+</td>
+<td>{{ model.target|default_if_none:"N/A" }}</td>
 <td>{{ model.date|date:"Y-m-d H:i" }}</td>
 <td>
     <a href="{% url 'visualize_MLmodel_view' model.id %}"
