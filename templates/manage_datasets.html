@@ -2,26 +2,24 @@
 {% block title %}Datasets{% endblock %}
 {% block content %} 
 
-<h2>Gerenciamento de datasets</h2>
+<h2>Dataset Management</h2>
 
 <!-- List available datasets -->
-<h4>Dados disponíveis</h4>
+<h4>Available Datasets</h4>
 <table class="table table-bordered">
     <thead>
         <tr>
-            <th>Nome</th>
-            {% comment %} <th>Arquivo</th>  {% endcomment %}
-            <th>Descrição</th>
-            <th>Número de linhas</th>
-            <th>Colunas</th>
-            <th>Ações</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Number of rows</th>
+            <th>Columns</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
         {% for ds in datasets %}
         <tr>
             <td>{{ ds.name }}</td>
-            {% comment %} <td>{{ ds.file.name|slice:"9:" }}</td>  {# Remove 'datasets/' from file name #} {% endcomment %}
             <td>{{ ds.description }}</td>            
             <td>{{ ds.n_rows }}</td>
             <td>
@@ -35,7 +33,7 @@
                 <button type="button" 
                         class="btn btn-sm btn-info mb-2 visualize-btn" 
                         data-url="{% url 'visualize_dataset_view' ds.pk %}">
-                    Visualizar
+                    Visualize
                 </button>
                 <a href="{% url 'download_dataset_view' ds.pk %}" 
                    class="btn btn-sm btn-success mb-2">
@@ -43,14 +41,14 @@
                 </a>
                 <a href="{% url 'delete_dataset_view' ds.pk %}" 
                    class="btn btn-sm btn-danger mb-2"
-                   onclick="return confirm('Tem certeza que deseja apagar permanentemente este dataset?');">
-                   Deletar
+                   onclick="return confirm('Are you sure you want to permanently delete this dataset?');">
+                   Delete
                 </a>
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5">Nenhum dataset encontrado.</td>
+            <td colspan="5">No datasets found.</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -59,9 +57,8 @@
 <!-- Container for visualizations -->
 <div id="visualization-container" class="mt-4"></div>
 
-
 <!-- Show upload form -->
-<h4>Adicionar novos dados</h4>
+<h4>Add new data</h4>
 <form method="post" enctype="multipart/form-data" class="mb-4">
     {% csrf_token %}
     
@@ -82,7 +79,7 @@
         <div class="alert alert-danger">{{ error }}</div>
     {% endfor %}
 
-    <button type="submit" name="upload_csv" class="btn btn-primary">Enviar Dataset</button>
+    <button type="submit" name="upload_csv" class="btn btn-primary">Upload Dataset</button>
 </form>
 
 <script>

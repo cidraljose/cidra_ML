@@ -15,6 +15,7 @@ from .plots import (
     create_correlation_heatmap,
     create_countplot,
     create_histogram,
+    create_normalized_pdf_plot,
     create_pdf_plot,
 )
 
@@ -51,7 +52,7 @@ def manage_datasets(request):
                 try:
                     dataset = pd.read_csv(file, sep=separator, encoding=encoding)
                 except Exception as e:
-                    upload_form.add_error("file", f"Erro ao ler o arquivo: {e}")
+                    upload_form.add_error("file", f"Error reading the file: {e}")
                     return render(
                         request,
                         "manage_datasets.html",
@@ -180,7 +181,7 @@ def visualize_dataset(request, dataset_id):
         plots = {}
         numerical_cols = dataset_df.select_dtypes(include=["number"]).columns.tolist()
         if numerical_cols:
-            plots["pdf_plot"] = create_pdf_plot(dataset_df, numerical_cols)
+            plots["pdf_plot"] = create_normalized_pdf_plot(dataset_df, numerical_cols)
             plots["correlation_heatmap"] = create_correlation_heatmap(
                 dataset_df, numerical_cols
             )

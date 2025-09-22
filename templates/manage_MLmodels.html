@@ -93,8 +93,8 @@
                     <td>
                         <a href="{% url 'visualize_MLmodel_view' model.id %}"
                             class="btn btn-sm btn-info mb-2 visualize-btn" 
-                            <i class="bi bi-eye-fill"></i>
-                            Visualizar
+                            ><i class="bi bi-eye-fill"></i>
+                            Visualize
                         </a>
                         {% if model.file %}
                         <a href="{% url 'download_MLmodel_view' model.id %}"
@@ -104,8 +104,8 @@
                         {% endif %}
                         <a href="{% url 'delete_MLmodel_view' model.id %}" 
                             class="btn btn-sm btn-danger mb-2" 
-                            onclick="return confirm('Tem certeza que deseja excluir esse modelo?');">
-                            Deletar
+                            onclick="return confirm('Are you sure you want to delete this model?');">
+                            Delete
                         </a>
                     </td>
                 </tr>
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const featuresSelect = document.getElementById('id_train-features') || document.querySelector('select[name="train-features"]');
 
     if (!datasetSelect || !targetSelect || !featuresSelect) {
-        console.warn('Elementos do form não encontrados:', {datasetSelect, targetSelect, featuresSelect});
+        console.warn('Form elements not found:', {datasetSelect, targetSelect, featuresSelect});
         return;
     }
 
@@ -172,8 +172,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Features (multiple)
         columns.forEach(col => {
             const opt = new Option(col, col);
-            // marca se estava selecionado antes (serverSelectedFeatures é array)
-            if (Array.isArray(serverSelectedFeatures) && serverSelectedFeatures.indexOf(col) !== -1) {
+            // Mark as selected if it was selected before (serverSelectedFeatures is an array)
+            if (Array.isArray(serverSelectedFeatures) && serverSelectedFeatures.includes(col)) {
                 opt.selected = true;
             }
             featuresSelect.appendChild(opt);
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchAndPopulate(this.value);
     });
 
-    // auto-popula ao carregar caso já haja um dataset selecionado (ex.: reload com form com erro)
+    // Auto-populate on page load if a dataset is already selected (e.g., on a form error reload)
     if (datasetSelect.value) {
         fetchAndPopulate(datasetSelect.value);
     }

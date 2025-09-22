@@ -1,37 +1,32 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="mb-0">Visualizando o dataset: {{ dataset.name }}</h3>
+        <h3 class="mb-0">Visualizing Dataset: {{ dataset.name }}</h3>
         <button type="button" class="btn-close" aria-label="Close" onclick="document.getElementById('visualization-container').innerHTML = '';"></button>
     </div>
     <div class="card-body">
         <div class="mt-3">
-            <h4>Perfil (primeiras 5 linhas)</h4>
+            <h4>Profile (first 5 rows)</h4>
             {{ head|safe }}
         </div>
 
         <div class="mt-4">
-            <h4>Estatísticas</h4>
+            <h4>Statistics</h4>
             {{ stats.description|safe }}
         </div>
-
-        {% comment %} <div class="mt-4">
-            <h4>Data Info</h4>
-            <pre class="bg-light p-3 rounded"><code>{{ stats.info }}</code></pre>
-        </div> {% endcomment %}
 
         <hr class="my-4">
         <h3 class="mt-4">Plots</h3>
 
         {% if plots.correlation_heatmap %}
         <div class="mt-4 text-center">
-            <h4>Mapa de Correlação</h4>
+            <h4>Correlation Heatmap</h4>
             <img src="data:image/png;base64,{{ plots.correlation_heatmap }}" alt="Correlation Heatmap" class="img-fluid border rounded">
         </div>
         {% endif %}
 
         {% if plots.pdf_plot %}
         <div class="mt-4 text-center">
-            <h4>Funções de Densidade de Probabilidade (PDF)</h4>
+            <h4>Normalized Probability Density Functions (PDF)</h4>
             <img src="data:image/png;base64,{{ plots.pdf_plot }}" alt="PDF Plot" class="img-fluid border rounded">
         </div>
         {% endif %}

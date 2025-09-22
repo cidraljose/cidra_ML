@@ -10,16 +10,16 @@ class UploadCSVForm(forms.Form):
     Form for uploading CSV datasets.
     """
 
-    file = forms.FileField(label="Arquivo CSV")
-    name = forms.CharField(label="Nome do conjunto de dados", max_length=64)
+    file = forms.FileField(label="CSV File")
+    name = forms.CharField(label="Dataset Name", max_length=64)
     separator = forms.ChoiceField(
         choices=[
-            (",", "Vírgula ( , )"),
-            (";", "Ponto e vírgula ( ; )"),
-            ("|", "Barra vertical ( | )"),
-            ("\\t", "Tabulação ( \\t )"),
+            (",", "Comma ( , )"),
+            (";", "Semicolon ( ; )"),
+            ("|", "Pipe ( | )"),
+            ("\\t", "Tab ( \\t )"),
         ],
-        label="Separador",
+        label="Separator",
     )
     encoding = forms.ChoiceField(
         choices=[
@@ -28,11 +28,11 @@ class UploadCSVForm(forms.Form):
             ("iso-8859-1", "ISO-8859-1"),
             ("cp1252", "CP1252"),
         ],
-        label="Codificação",
+        label="Encoding",
         initial="utf-8",
     )
     description = forms.CharField(
-        label="Descrição",
+        label="Description",
         max_length=512,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         required=False,
