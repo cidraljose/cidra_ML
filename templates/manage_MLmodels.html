@@ -75,39 +75,8 @@
             </thead>
             <tbody>
                 {% for model in models %}
-                <tr>
-                    <td>{{ model.name }}</td>
-                    <td>
-                        {% if model.status == 'TRAINING' %}
-                            <span class="badge bg-warning text-dark">{{ model.get_status_display }} <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
-                        {% elif model.status == 'COMPLETED' %}
-                            <span class="badge bg-success">{{ model.get_status_display }}</span>
-                        {% elif model.status == 'FAILED' %}
-                            <span class="badge bg-danger">{{ model.get_status_display }}</span>
-                        {% else %}
-                            <span class="badge bg-secondary">{{ model.get_status_display }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ model.related_dataset.name|default:"N/A" }}</td>
-                    <td>{{ model.date|date:"Y-m-d H:i" }}</td>
-                    <td>
-                        <a href="{% url 'visualize_MLmodel_view' model.id %}"
-                            class="btn btn-sm btn-info mb-2 visualize-btn" 
-                            ><i class="bi bi-eye-fill"></i>
-                            Visualize
-                        </a>
-                        {% if model.file %}
-                        <a href="{% url 'download_MLmodel_view' model.id %}"
-                            class="btn btn-sm btn-success mb-2">
-                            Download
-                        </a>
-                        {% endif %}
-                        <a href="{% url 'delete_MLmodel_view' model.id %}" 
-                            class="btn btn-sm btn-danger mb-2" 
-                            onclick="return confirm('Are you sure you want to delete this model?');">
-                            Delete
-                        </a>
-                    </td>
+                <tr id="model-row-{{ model.id }}" {% if model.status == 'TRAINING' %}data-is-training="true"{% endif %}>
+                    {% include "_MLmodel_row_partial.html" %}
                 </tr>
                 {% empty %}
                 <tr>
@@ -122,6 +91,8 @@
 
 {% block scripts %}
 <script>
+// NOTE: You must add a URL path for 'get_MLmodel_row_partial' pointing to the new view.
+// Example: path('models/<int:MLmodel_id>/row/', views.get_MLmodel_row_partial, name='get_MLmodel_row_partial')
 document.addEventListener('DOMContentLoaded', function() {
     // Tries to locate by IDs (prefix 'train') or by name if ID doesn't exist
     const datasetSelect = document.getElementById('id_train-dataset') || document.querySelector('select[name="train-dataset"]');
@@ -219,6 +190,47 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-populate on page load if a dataset is already selected (e.g., on a form error reload)
     if (datasetSelect.value) {
         fetchAndPopulate(datasetSelect.value);
+    }
+
+    // --- Live Status Polling for Training Models ---
+    const trainingRows = document.querySelectorAll('tr[data-is-training="true"]');
+    if (trainingRows.length > 0) {
+        const pollingInterval = 5000; // 5 seconds
+        const activePollers = new Map();
+
+        const pollStatus = async (modelId, rowElement) => {
+            // Use a placeholder '0' that can be replaced.
+            const url = "{% url 'get_MLmodel_row_partial' 0 %}".replace('0', modelId);
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                
+                const newRowHtml = await response.text();
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = newRowHtml;
+
+                // If the new row no longer has the 'TRAINING' status, stop polling.
+                if (newRow.querySelector('.bg-warning') === null) {
+                    clearInterval(activePollers.get(modelId));
+                    activePollers.delete(modelId);
+                }
+                
+                // Replace the old row content with the new one.
+                rowElement.innerHTML = newRowHtml;
+
+            } catch (error) {
+                console.error(`Failed to poll status for model ${modelId}:`, error);
+                clearInterval(activePollers.get(modelId)); // Stop on error
+                activePollers.delete(modelId);
+            }
+        };
+
+        trainingRows.forEach(row => {
+            const modelId = row.id.split('-').pop();
+            const intervalId = setInterval(() => pollStatus(modelId, row), pollingInterval);
+            activePollers.set(modelId, intervalId);
+        });
     }
 });
 </script>

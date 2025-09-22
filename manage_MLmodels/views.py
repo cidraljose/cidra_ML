@@ -271,3 +271,12 @@ def visualize_MLmodel(request, MLmodel_id):
     model_obj = get_object_or_404(MLModel, id=MLmodel_id)
     context = {"model": model_obj}
     return render(request, "_visualize_MLmodel_partial.html", context)
+
+
+@require_GET
+def get_MLmodel_row_partial(request, MLmodel_id):
+    """
+    Returns the HTML for a single model table row to enable live updates.
+    """
+    model = get_object_or_404(MLModel, id=MLmodel_id)
+    return render(request, "_MLmodel_row_partial.html", {"model": model})

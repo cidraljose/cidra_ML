@@ -50,9 +50,9 @@ class TrainMLModelForm(forms.Form):
         help_text="Select the columns to use for training. (Ctrl+Click for multiple)",
     )
     time_limit = forms.IntegerField(
-        label="Max Training Time (seconds)",
-        min_value=60,
-        initial=60,
+        label="Training Time (seconds) [if 0, no limit is set]",
+        min_value=0,
+        initial=0,
         widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
     presets = forms.ChoiceField(

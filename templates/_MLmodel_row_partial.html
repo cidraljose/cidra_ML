@@ -1,0 +1,32 @@
+<td>{{ model.name }}</td>
+<td>
+    {% if model.status == 'TRAINING' %}
+        <span class="badge bg-warning text-dark">{{ model.get_status_display }} <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+    {% elif model.status == 'COMPLETED' %}
+        <span class="badge bg-success">{{ model.get_status_display }}</span>
+    {% elif model.status == 'FAILED' %}
+        <span class="badge bg-danger">{{ model.get_status_display }}</span>
+    {% else %}
+        <span class="badge bg-secondary">{{ model.get_status_display }}</span>
+    {% endif %}
+</td>
+<td>{{ model.related_dataset.name|default:"N/A" }}</td>
+<td>{{ model.date|date:"Y-m-d H:i" }}</td>
+<td>
+    <a href="{% url 'visualize_MLmodel_view' model.id %}"
+        class="btn btn-sm btn-info mb-2 visualize-btn" 
+        ><i class="bi bi-eye-fill"></i>
+        Visualize
+    </a>
+    {% if model.file %}
+    <a href="{% url 'download_MLmodel_view' model.id %}"
+        class="btn btn-sm btn-success mb-2">
+        Download
+    </a>
+    {% endif %}
+    <a href="{% url 'delete_MLmodel_view' model.id %}" 
+        class="btn btn-sm btn-danger mb-2" 
+        onclick="return confirm('Are you sure you want to delete this model?');">
+        Delete
+    </a>
+</td>
