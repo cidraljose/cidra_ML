@@ -2,85 +2,108 @@
 {% block title %}Datasets{% endblock %}
 {% block content %} 
 
-<h2>Dataset Management</h2>
+<h2 class="mb-4">Dataset Management</h2>
 
-<!-- List available datasets -->
-<h4>Available Datasets</h4>
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Number of rows</th>
-            <th>Columns</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ds in datasets %}
-        <tr>
-            <td>{{ ds.name }}</td>
-            <td>{{ ds.description }}</td>            
-            <td>{{ ds.n_rows }}</td>
-            <td>
-                <ul>
-                    {% for col, type in ds.columns.items %}
-                        <li>{{ col }} ({{ type }})</li>
+<!-- Tabs for different actions -->
+<ul class="nav nav-tabs" id="datasetTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list-panel" type="button" role="tab" aria-controls="list-panel" aria-selected="true">Available Datasets</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-panel" type="button" role="tab" aria-controls="upload-panel" aria-selected="false">Upload New Dataset</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="split-tab" data-bs-toggle="tab" data-bs-target="#split-panel" type="button" role="tab" aria-controls="split-panel" aria-selected="false">Split Dataset</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="datasetTabsContent">
+    <!-- Panel 1: List available datasets -->
+    <div class="tab-pane fade show active" id="list-panel" role="tabpanel" aria-labelledby="list-tab">
+        <div class="table-responsive mt-3">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Rows</th>
+                        <th>Columns</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ds in datasets %}
+                    <tr>
+                        <td>{{ ds.name }}</td>
+                        <td>{{ ds.description|default:"-" }}</td>            
+                        <td>{{ ds.n_rows }}</td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                                {% for col, type in ds.columns.items %}
+                                    <li><small>{{ col }} ({{ type }})</small></li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info mb-1 visualize-btn" data-url="{% url 'visualize_dataset_view' ds.pk %}">Visualize</button>
+                            <a href="{% url 'download_dataset_view' ds.pk %}" class="btn btn-sm btn-success mb-1">Download</a>
+                            <a href="{% url 'delete_dataset_view' ds.pk %}" class="btn btn-sm btn-danger mb-1" onclick="return confirm('Are you sure you want to permanently delete this dataset?');">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No datasets found.</td>
+                    </tr>
                     {% endfor %}
-                </ul>
-            </td>
-            <td>
-                <button type="button" 
-                        class="btn btn-sm btn-info mb-2 visualize-btn" 
-                        data-url="{% url 'visualize_dataset_view' ds.pk %}">
-                    Visualize
-                </button>
-                <a href="{% url 'download_dataset_view' ds.pk %}" 
-                   class="btn btn-sm btn-success mb-2">
-                    Download
-                </a>
-                <a href="{% url 'delete_dataset_view' ds.pk %}" 
-                   class="btn btn-sm btn-danger mb-2"
-                   onclick="return confirm('Are you sure you want to permanently delete this dataset?');">
-                   Delete
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5">No datasets found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Panel 2: Upload new data -->
+    <div class="tab-pane fade" id="upload-panel" role="tabpanel" aria-labelledby="upload-tab">
+        <div class="card card-body mt-3">
+            <h5 class="card-title">Add New Data</h5>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in upload_form %}
+                    <div class="mb-3">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<div class="alert alert-danger mt-1 p-2">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+                {% for error in upload_form.non_field_errors %}<div class="alert alert-danger p-2">{{ error }}</div>{% endfor %}
+                <button type="submit" name="upload_csv" class="btn btn-primary">Upload Dataset</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Panel 3: Split a dataset -->
+    <div class="tab-pane fade" id="split-panel" role="tabpanel" aria-labelledby="split-tab">
+        <div class="card card-body mt-3">
+            <h5 class="card-title">Split a Dataset into Training and Test Sets</h5>
+            <p class="card-text">This will create two new datasets: `(name)_train` and `(name)_test`.</p>
+            <form method="post">
+                {% csrf_token %}
+                {% for field in split_form %}
+                    <div class="mb-3">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<div class="alert alert-danger mt-1 p-2">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+                {% for error in split_form.non_field_errors %}<div class="alert alert-danger p-2">{{ error }}</div>{% endfor %}
+                <button type="submit" name="split_dataset" class="btn btn-primary">Split Dataset</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Container for visualizations -->
 <div id="visualization-container" class="mt-4"></div>
-
-<!-- Show upload form -->
-<h4>Add new data</h4>
-<form method="post" enctype="multipart/form-data" class="mb-4">
-    {% csrf_token %}
-    
-    {% for field in upload_form %}
-        <div class="mb-3">
-            {{ field.label_tag }}
-            {{ field }}
-            {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-            {% endif %}
-            {% for error in field.errors %}
-                <div class="alert alert-danger mt-1">{{ error }}</div>
-            {% endfor %}
-        </div>
-    {% endfor %}
-
-    {% for error in upload_form.non_field_errors %}
-        <div class="alert alert-danger">{{ error }}</div>
-    {% endfor %}
-
-    <button type="submit" name="upload_csv" class="btn btn-primary">Upload Dataset</button>
-</form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

@@ -9,15 +9,36 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import UploadCSVForm
+from .forms import SplitDatasetForm, UploadCSVForm
 from .models import Dataset
 from .plots import (
     create_correlation_heatmap,
     create_countplot,
     create_histogram,
     create_normalized_pdf_plot,
-    create_pdf_plot,
 )
+
+
+def _create_dataset_instance(name, description, df, user):
+    """Helper function to save a dataframe and create a Dataset model instance."""
+    csv_filename = f"{name.replace(' ', '_')}_{uuid.uuid4().hex[:8]}.csv"
+    csv_path = os.path.join(settings.DATASETS_DIR, csv_filename)
+    df.to_csv(csv_path, index=False, sep=",", encoding="utf-8")
+
+    columns_info = {col: str(dtype) for col, dtype in df.dtypes.items()}
+
+    new_dataset = Dataset.objects.create(
+        name=name,
+        file=os.path.join("", csv_filename),
+        separator=",",
+        encoding="utf-8",
+        columns=columns_info,
+        n_rows=df.shape[0],
+        n_columns=df.shape[1],
+        uploaded_by=user if user and user.is_authenticated else None,
+        description=description,
+    )
+    return new_dataset
 
 
 def manage_datasets(request):
@@ -32,9 +53,11 @@ def manage_datasets(request):
     # List datasets and handle upload form
     datasets = Dataset.objects.all().order_by("-date")
     upload_form = UploadCSVForm()
+    split_form = SplitDatasetForm()
 
     if request.method == "POST":
         if "upload_csv" in request.POST:
+            # --- Handle CSV Upload ---
             upload_form = UploadCSVForm(request.POST, request.FILES)
             if upload_form.is_valid():
                 # Extract form data
@@ -56,38 +79,56 @@ def manage_datasets(request):
                     return render(
                         request,
                         "manage_datasets.html",
-                        {"upload_form": upload_form, "datasets": datasets},
+                        {
+                            "upload_form": upload_form,
+                            "split_form": split_form,
+                            "datasets": datasets,
+                        },
                     )
 
-                # Standardize and save dataset
-                # FIX: Save file with the same name that will be stored in the database
-                csv_filename = f"{name.replace(' ', '_')}_{uuid.uuid4().hex[:8]}.csv"
-                csv_path = os.path.join(settings.DATASETS_DIR, csv_filename)
-                dataset.to_csv(csv_path, index=False, sep=",", encoding="utf-8")
-
-                # Set columns info
-                columns_info = {
-                    col: str(dtype) for col, dtype in dataset.dtypes.items()
-                }
-
-                Dataset.objects.create(
-                    name=name,
-                    file=os.path.join("", csv_filename),
-                    separator=",",
-                    encoding="utf-8",
-                    columns=columns_info,
-                    n_rows=dataset.shape[0],
-                    n_columns=dataset.shape[1],
-                    uploaded_by=request.user if request.user.is_authenticated else None,
-                    description=description,
-                )
-
+                _create_dataset_instance(name, description, dataset, request.user)
                 return redirect("manage_datasets_view")
+
+        elif "split_dataset" in request.POST:
+            # --- Handle Dataset Split ---
+            split_form = SplitDatasetForm(request.POST)
+            if split_form.is_valid():
+                original_dataset = split_form.cleaned_data["dataset"]
+                train_ratio = split_form.cleaned_data["train_split_ratio"] / 100.0
+
+                original_file_path = os.path.join(
+                    settings.DATASETS_DIR, original_dataset.file.name
+                )
+                try:
+                    original_df = pd.read_csv(original_file_path)
+
+                    # Split the dataframe
+                    train_df = original_df.sample(frac=train_ratio, random_state=42)
+                    test_df = original_df.drop(train_df.index)
+
+                    # Create train dataset
+                    _create_dataset_instance(
+                        name=f"{original_dataset.name}_train",
+                        description=f"Training split from '{original_dataset.name}'",
+                        df=train_df,
+                        user=request.user,
+                    )
+                    # Create test dataset
+                    _create_dataset_instance(
+                        name=f"{original_dataset.name}_test",
+                        description=f"Test split from '{original_dataset.name}'",
+                        df=test_df,
+                        user=request.user,
+                    )
+                    return redirect("manage_datasets_view")
+
+                except Exception as e:
+                    split_form.add_error(None, f"Error processing dataset: {e}")
 
     return render(
         request,
         "manage_datasets.html",
-        {"upload_form": upload_form, "datasets": datasets},
+        {"upload_form": upload_form, "split_form": split_form, "datasets": datasets},
     )
 
 

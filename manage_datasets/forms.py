@@ -4,6 +4,8 @@ Forms for manage_datasets app
 
 from django import forms
 
+from .models import Dataset
+
 
 class UploadCSVForm(forms.Form):
     """
@@ -36,4 +38,24 @@ class UploadCSVForm(forms.Form):
         max_length=512,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         required=False,
+    )
+
+
+class SplitDatasetForm(forms.Form):
+    """
+    Form for splitting a dataset into training and testing sets.
+    """
+
+    dataset = forms.ModelChoiceField(
+        queryset=Dataset.objects.all().order_by("-date"),
+        label="Select Dataset to Split",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    train_split_ratio = forms.IntegerField(
+        min_value=1,
+        max_value=99,
+        initial=80,
+        label="Training Set Ratio (%)",
+        help_text="The percentage of data for the training set. The rest will be for the test set.",
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
