@@ -280,3 +280,12 @@ def get_MLmodel_row_partial(request, MLmodel_id):
     """
     model = get_object_or_404(MLModel, id=MLmodel_id)
     return render(request, "_MLmodel_row_partial.html", {"model": model})
+
+
+@require_GET
+def get_model_details(request, model_id):
+    """
+    Returns JSON with the model's target column.
+    """
+    model = get_object_or_404(MLModel, pk=model_id)
+    return JsonResponse({"target": model.target, "features": model.features or []})

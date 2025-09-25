@@ -38,10 +38,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // This script dynamically populates target/feature selects based on the chosen dataset.
-    // It should work with forms that have prefixed fields and forms that don't
-    
     // Selects a field with the exact name OR a name ending in '-fieldname'.
-    // This handles both 'dataset' and 'train-dataset'.
     const datasetSelect = document.querySelector('select[name="dataset"], select[name$="-dataset"]');
     const targetSelect = document.querySelector('select[name="target"], select[name$="-target"]');
     const featuresSelect = document.querySelector('select[name="features"], select[name$="-features"]');
@@ -138,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchAndPopulate(this.value);
     });
 
-    // Auto-populate on page load if a dataset is already selected (e.g., on a form error reload)
+    // Auto-populate on page load if a dataset is already selected
     if (datasetSelect.value) {
         fetchAndPopulate(datasetSelect.value);
     }

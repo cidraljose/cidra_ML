@@ -30,8 +30,7 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
 
     try:
         dataset_instance = Dataset.objects.get(id=dataset_id)
-        dataset_path = os.path.join(settings.DATASETS_DIR, dataset_instance.file.name)
-        train_data = pd.read_csv(dataset_path)
+        train_data = pd.read_csv(dataset_instance.file.path)
 
         columns_to_use = features + [target]
         train_data = train_data[columns_to_use]

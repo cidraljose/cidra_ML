@@ -1,7 +1,24 @@
+# IDE and OS specific
 .vscode/
+.DS_Store
+Thumbs.db
+
+# Python virtual environment
 .venv/
 __pypackages__/
+
+# Python cache and logs
 __pycache__/
+*.pyc
+*.log
+
+# User-generated media and databases
 media/
 db.sqlite3
+
+# Celery specific
 celerydb.sqlite
+celerybeat-schedule
+
+# Environment variables
+.env

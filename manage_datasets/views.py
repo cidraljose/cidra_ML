@@ -29,7 +29,7 @@ def _create_dataset_instance(name, description, df, user):
 
     new_dataset = Dataset.objects.create(
         name=name,
-        file=os.path.join("", csv_filename),
+        file=os.path.join("datasets", csv_filename),
         separator=",",
         encoding="utf-8",
         columns=columns_info,
@@ -96,9 +96,7 @@ def manage_datasets(request):
                 original_dataset = split_form.cleaned_data["dataset"]
                 train_ratio = split_form.cleaned_data["train_split_ratio"] / 100.0
 
-                original_file_path = os.path.join(
-                    settings.DATASETS_DIR, original_dataset.file.name
-                )
+                original_file_path = original_dataset.file.path
                 try:
                     original_df = pd.read_csv(original_file_path)
 
@@ -139,9 +137,8 @@ def delete_dataset(request, dataset_id):
     try:
         dataset = Dataset.objects.get(id=dataset_id)
         if dataset.file:
-            file_path = os.path.join(settings.DATASETS_DIR, dataset.file.name)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            if os.path.exists(dataset.file.path):
+                os.remove(dataset.file.path)
         dataset.delete()
     except Dataset.DoesNotExist:
         pass  # To implement
@@ -157,14 +154,13 @@ def download_dataset(request, dataset_id):
         dataset = Dataset.objects.get(id=dataset_id)
 
         if dataset.file:
-            file_path = os.path.join(settings.DATASETS_DIR, dataset.file.name)
-            if os.path.exists(file_path):
-                with open(file_path, "rb") as f:
+            if os.path.exists(dataset.file.path):
+                with open(dataset.file.path, "rb") as f:
                     response = HttpResponse(
                         f.read(), content_type="application/octet-stream"
                     )
                     response["Content-Disposition"] = (
-                        f'attachment; filename="{os.path.basename(file_path)}"'
+                        f'attachment; filename="{os.path.basename(dataset.file.path)}"'
                     )
                     return response
     except Dataset.DoesNotExist:
@@ -206,8 +202,7 @@ def visualize_dataset(request, dataset_id):
             "head": dataset_obj.head_context,
         }
     else:  # generate, save, and then display
-        file_path = os.path.join(settings.DATASETS_DIR, dataset_obj.file.name)
-        dataset_df = pd.read_csv(file_path)
+        dataset_df = pd.read_csv(dataset_obj.file.path)
 
         # Stats
         stats = {}

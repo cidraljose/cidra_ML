@@ -10,6 +10,7 @@ def testing(request):
     form = TestingForm()
     evaluation_results = None
     selected_target = ""
+    selected_model_id = ""
     selected_features_json = "[]"
 
     if request.method == "POST":
@@ -17,14 +18,13 @@ def testing(request):
         if form.is_valid():
             ml_model = form.cleaned_data["model"]
             dataset = form.cleaned_data["dataset"]
-            target_column = form.cleaned_data["target"]
 
             try:
                 test_data = pd.read_csv(dataset.file.path)
-                predictor = TabularPredictor.load(ml_model.model_path)
+                predictor = TabularPredictor.load(ml_model.file.path)
 
                 # Evaluate the model
-                evaluation_results = predictor.evaluate(test_data, label=target_column)
+                evaluation_results = predictor.evaluate(test_data)
 
                 # leaderboard = predictor.leaderboard(test_data)
 
@@ -38,12 +38,14 @@ def testing(request):
         else:
             # Preserve selections on form error
             selected_target = request.POST.get("target", "")
+            selected_model_id = request.POST.get("model", "")
             messages.error(request, "Please correct the errors below.")
 
     context = {
         "form": form,
         "evaluation_results": evaluation_results,
         "selected_target": selected_target,
+        "selected_model_id": selected_model_id,
         "selected_features_json": selected_features_json,
     }
     return render(request, "testing.html", context)

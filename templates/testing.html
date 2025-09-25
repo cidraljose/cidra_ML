@@ -30,8 +30,23 @@
                     {% endfor %}
                 </div>
             {% endfor %}
-            <button type="submit" class="btn btn-primary mt-3">🧪 Evaluate Model</button>
+            <button type="submit" class="btn btn-primary mt-3">Evaluate Model</button>
         </form>
+
+        <!-- Dynamic Info Display -->
+        <div class="mt-4">
+            <div id="model-info-container" class="d-none">
+                <h5>Model Details</h5>
+                <p><strong>Target:</strong> <span id="model-target"></span></p>
+                <p><strong>Features:</strong></p>
+                <ul id="model-features" class="list-group" style="max-height: 150px; overflow-y: auto;"></ul>
+            </div>
+            <div id="dataset-info-container" class="mt-3 d-none">
+                <h5>Dataset Columns</h5>
+                <ul id="dataset-columns" class="list-group" style="max-height: 150px; overflow-y: auto;"></ul>
+            </div>
+        </div>
+
     </div>
 
     {% if evaluation_results %}
@@ -62,4 +77,93 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modelSelect = document.getElementById('id_model');
+    const datasetSelect = document.getElementById('id_dataset');
+
+    const modelInfoContainer = document.getElementById('model-info-container');
+    const modelTargetEl = document.getElementById('model-target');
+    const modelFeaturesEl = document.getElementById('model-features');
+
+    const datasetInfoContainer = document.getElementById('dataset-info-container');
+    const datasetColumnsEl = document.getElementById('dataset-columns');
+
+    // URLs for fetching data
+    const modelDetailsUrlTemplate = "{% url 'get_model_details_view' 0 %}";
+    const datasetColumnsUrlTemplate = "{% url 'get_dataset_columns_view' 0 %}";
+
+    function buildUrl(template, id) {
+        if (!id) return null;
+        return template.replace(/0\/?$/, id + '/');
+    }
+
+    function renderList(element, items) {
+        element.innerHTML = '';
+        if (items && items.length > 0) {
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item py-1';
+                li.textContent = item;
+                element.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.className = 'list-group-item py-1 text-muted';
+            li.textContent = 'No items to display.';
+            element.appendChild(li);
+        }
+    }
+
+    async function fetchModelDetails(modelId) {
+        const url = buildUrl(modelDetailsUrlTemplate, modelId);
+        if (!url) {
+            modelInfoContainer.classList.add('d-none');
+            return;
+        }
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch model details');
+            const data = await response.json();
+
+            modelTargetEl.textContent = data.target || 'Not specified';
+            renderList(modelFeaturesEl, data.features);
+            modelInfoContainer.classList.remove('d-none');
+        } catch (error) {
+            console.error(error);
+            modelInfoContainer.classList.add('d-none');
+        }
+    }
+
+    async function fetchDatasetColumns(datasetId) {
+        const url = buildUrl(datasetColumnsUrlTemplate, datasetId);
+        if (!url) {
+            datasetInfoContainer.classList.add('d-none');
+            return;
+        }
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch dataset columns');
+            const data = await response.json();
+
+            renderList(datasetColumnsEl, data.columns);
+            datasetInfoContainer.classList.remove('d-none');
+        } catch (error) {
+            console.error(error);
+            datasetInfoContainer.classList.add('d-none');
+        }
+    }
+
+    modelSelect.addEventListener('change', (e) => fetchModelDetails(e.target.value));
+    datasetSelect.addEventListener('change', (e) => fetchDatasetColumns(e.target.value));
+
+    // Initial load if values are pre-selected
+    if (modelSelect.value) fetchModelDetails(modelSelect.value);
+    if (datasetSelect.value) fetchDatasetColumns(datasetSelect.value);
+});
+</script>
 {% endblock %}
