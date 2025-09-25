@@ -1,14 +1,19 @@
+import io
+
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 from django.contrib import messages
-from django.shortcuts import render
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.http import require_GET
 
 from .forms import TestingForm
+from .models import TestResult
+from .plots import create_predicted_vs_real_plot
 
 
 def testing(request):
     form = TestingForm()
-    evaluation_results = None
     selected_target = ""
     selected_model_id = ""
     selected_features_json = "[]"
@@ -26,8 +31,22 @@ def testing(request):
                 # Evaluate the model
                 evaluation_results = predictor.evaluate(test_data)
 
-                # leaderboard = predictor.leaderboard(test_data)
+                # Generate predictions for the plot
+                predictions = predictor.predict(test_data)
+                target_column = ml_model.target  # noqa: F841
+                real_values = test_data[target_column]
+                evaluation_plot = create_predicted_vs_real_plot(
+                    real_values, predictions
+                )
 
+                # leaderboard = predictor.leaderboard(test_data)
+                TestResult.objects.create(
+                    model=ml_model,
+                    dataset=dataset,
+                    evaluation_metrics=evaluation_results,
+                    predictions=predictions.tolist(),
+                    plot=evaluation_plot,
+                )
                 messages.success(
                     request,
                     f"Model '{ml_model.name}' evaluated successfully on '{dataset.name}'.",
@@ -41,11 +60,59 @@ def testing(request):
             selected_model_id = request.POST.get("model", "")
             messages.error(request, "Please correct the errors below.")
 
+    history = TestResult.objects.select_related("model", "dataset").all()
+
     context = {
         "form": form,
-        "evaluation_results": evaluation_results,
         "selected_target": selected_target,
         "selected_model_id": selected_model_id,
         "selected_features_json": selected_features_json,
+        "history": history,
     }
     return render(request, "testing.html", context)
+
+
+@require_GET
+def get_test_result_details(request, result_id):
+    """
+    Returns the evaluation metrics and plot for a specific test result.
+    """
+    result = get_object_or_404(TestResult, pk=result_id)
+    return JsonResponse(
+        {
+            "metrics": result.evaluation_metrics,
+            "plot": result.plot,
+            "model_name": result.model.name,
+            "dataset_name": result.dataset.name,
+        }
+    )
+
+
+def download_test_with_predictions(request, result_id):
+    """
+    Downloads the test dataset with an added 'y_predicted' column.
+    """
+    result = get_object_or_404(TestResult, pk=result_id)
+
+    if not result.predictions:
+        raise Http404("Predictions are not available for this test result.")
+
+    try:
+        # Read the original dataset
+        df = pd.read_csv(result.dataset.file.path)
+        # Add the predictions as a new column
+        df["y_predicted"] = result.predictions
+
+        # Create an in-memory CSV file
+        output = io.StringIO()
+        df.to_csv(output, index=False)
+        response = HttpResponse(output.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = (
+            f"attachment; filename={result.dataset.name}_with_predictions.csv"
+        )
+        return response
+
+    except FileNotFoundError:
+        raise Http404("The original dataset file could not be found.")
+    except Exception as e:
+        raise Http404(f"An error occurred while preparing the download: {e}")

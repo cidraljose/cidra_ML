@@ -3,97 +3,169 @@
 {% block title %}Test Models - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
-        <h2>Test a Model</h2>
-        <p>Select a trained model and a dataset to evaluate its performance.</p>
-        
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs" id="testingTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="evaluate-tab" data-bs-toggle="tab" data-bs-target="#evaluate-panel" type="button" role="tab" aria-controls="evaluate-panel" aria-selected="true">
+            Test a Model
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-panel" type="button" role="tab" aria-controls="history-panel" aria-selected="false">
+            Tests History
+        </button>
+    </li>
+</ul>
 
-        <form method="post" novalidate>
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="mb-3">
-                    {{ field.label_tag }}
-                    {{ field }}
-                    {% if field.help_text %}
-                        <small class="form-text text-muted">{{ field.help_text|safe }}</small>
-                    {% endif %}
-                    {% for error in field.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ error }}
+<!-- Tab Content -->
+<div class="tab-content" id="testingTabContent">
+    <!-- Evaluation Panel -->
+    <div class="tab-pane fade show active" id="evaluate-panel" role="tabpanel" aria-labelledby="evaluate-tab">
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <h2>Evaluate a Model</h2>
+                <p>Select a trained model and a dataset to evaluate its performance.</p>
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text|safe }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
                         </div>
                     {% endfor %}
+                    <button type="submit" class="btn btn-primary mt-3">Evaluate Model</button>
+                </form>
+
+                <!-- Dynamic Info Display -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div id="model-info-container" class="d-none">
+                            <h5>Model Details</h5>
+                            <p><strong>Target:</strong> <span id="model-target"></span></p>
+                            <p><strong>Features:</strong></p>
+                            <ul id="model-features" class="list-group" style="max-height: 300px; overflow-y: auto;"></ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="dataset-info-container" class="d-none">
+                            <h5>Dataset Details</h5>
+                            <p><strong>Columns:</strong></p>
+                            <ul id="dataset-columns" class="list-group" style="max-height: 300px; overflow-y: auto;"></ul>
+                        </div>
+                    </div>
                 </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary mt-3">Evaluate Model</button>
-        </form>
 
-        <!-- Dynamic Info Display -->
-        <div class="mt-4">
-            <div id="model-info-container" class="d-none">
-                <h5>Model Details</h5>
-                <p><strong>Target:</strong> <span id="model-target"></span></p>
-                <p><strong>Features:</strong></p>
-                <ul id="model-features" class="list-group" style="max-height: 150px; overflow-y: auto;"></ul>
             </div>
-            <div id="dataset-info-container" class="mt-3 d-none">
-                <h5>Dataset Columns</h5>
-                <ul id="dataset-columns" class="list-group" style="max-height: 150px; overflow-y: auto;"></ul>
-            </div>
+
         </div>
-
     </div>
 
-    {% if evaluation_results %}
-    <div class="col-md-6">
-        <h2>Evaluation Results</h2>
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Metrics</h5>
-                <p class="card-text">Performance of the model on the test dataset:</p>
+    <!-- History Panel -->
+    <div class="tab-pane fade" id="history-panel" role="tabpanel" aria-labelledby="history-tab">
+        <div class="mt-3">
+            <h2>All Test Results</h2>
+            {% if history %}
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th>Metric</th>
-                            <th>Value</th>
+                            <th>Date</th>
+                            <th>Model</th>
+                            <th>Dataset</th>
+                            <th>Accuracy</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for key, value in evaluation_results.items %}
+                        {% for result in history %}
                         <tr>
-                            <td>{{ key }}</td>
-                            <td>{{ value|floatformat:4 }}</td>
+                            <td>{{ result.test_date|date:"Y-m-d H:i" }}</td>
+                            <td>{{ result.model.name }}</td>
+                            <td>{{ result.dataset.name }}</td>
+                            <td>{{ result.evaluation_metrics.accuracy|default:"N/A"|floatformat:4 }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info view-results-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#resultsModal">
+                                    View
+                                </button>
+                                <a href="{% url 'download_with_predictions_view' result.id %}" class="btn btn-sm btn-success">
+                                    Download
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
+            {% else %}
+                <p class="text-muted">No test results found. Run an evaluation to see its history here.</p>
+            {% endif %}
         </div>
     </div>
-    {% endif %}
+</div>
+
+<!-- Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resultsModalLabel">Evaluation Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Model:</strong> <span id="modal-model-name"></span></p>
+        <p><strong>Dataset:</strong> <span id="modal-dataset-name"></span></p>
+        <div class="row">
+            <div class="col-md-5">
+                <h5>Metrics</h5>
+                <table class="table table-sm" id="modal-metrics-table">
+                    <!-- Metrics will be populated by JS -->
+                </table>
+            </div>
+            <div class="col-md-7">
+                <h5>Plot</h5>
+                <div id="modal-plot-container" class="text-center">
+                    <!-- Plot image will be populated by JS -->
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {{ block.super }}
 <script>
+// Runs only after the HTML document has been fully loaded
 document.addEventListener('DOMContentLoaded', function () {
+    // Get references to the HTML elements
     const modelSelect = document.getElementById('id_model');
     const datasetSelect = document.getElementById('id_dataset');
 
+    // Elements for displaying model information
     const modelInfoContainer = document.getElementById('model-info-container');
     const modelTargetEl = document.getElementById('model-target');
     const modelFeaturesEl = document.getElementById('model-features');
 
+    // Elements for displaying dataset information
     const datasetInfoContainer = document.getElementById('dataset-info-container');
     const datasetColumnsEl = document.getElementById('dataset-columns');
 
-    // URLs for fetching data
+    // URLs for fetching data using Django's `url` tag. '0' is a placeholder for the ID.
     const modelDetailsUrlTemplate = "{% url 'get_model_details_view' 0 %}";
     const datasetColumnsUrlTemplate = "{% url 'get_dataset_columns_view' 0 %}";
 
@@ -103,6 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderList(element, items) {
+        // Clear any previous list items.
         element.innerHTML = '';
         if (items && items.length > 0) {
             items.forEach(item => {
@@ -111,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 li.textContent = item;
                 element.appendChild(li);
             });
+        // If the list is empty, show a helpful message.
         } else {
             const li = document.createElement('li');
             li.className = 'list-group-item py-1 text-muted';
@@ -119,20 +193,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Asynchronous function to fetch and display model details.
     async function fetchModelDetails(modelId) {
         const url = buildUrl(modelDetailsUrlTemplate, modelId);
         if (!url) {
-            modelInfoContainer.classList.add('d-none');
+            modelInfoContainer.classList.add('d-none'); // If no model is selected, hide the info
             return;
         }
         try {
+            // Fetch data from the server's API endpoint
             const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch model details');
             const data = await response.json();
 
+            // Populate the HTML elements with the received data
             modelTargetEl.textContent = data.target || 'Not specified';
             renderList(modelFeaturesEl, data.features);
-            modelInfoContainer.classList.remove('d-none');
+            
+            modelInfoContainer.classList.remove('d-none'); // Make info box visible
         } catch (error) {
             console.error(error);
             modelInfoContainer.classList.add('d-none');
@@ -158,12 +236,63 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Attach event listeners to the dropdowns
+    // When a change occurs, call the appropriate fetch function
     modelSelect.addEventListener('change', (e) => fetchModelDetails(e.target.value));
     datasetSelect.addEventListener('change', (e) => fetchDatasetColumns(e.target.value));
 
     // Initial load if values are pre-selected
     if (modelSelect.value) fetchModelDetails(modelSelect.value);
     if (datasetSelect.value) fetchDatasetColumns(datasetSelect.value);
+
+    // --- Modal Logic ---
+    const resultsModal = document.getElementById('resultsModal');
+    if (resultsModal) {
+        resultsModal.addEventListener('show.bs.modal', async function (event) {
+            const button = event.relatedTarget;
+            const resultId = button.getAttribute('data-result-id');
+            const url = `/testing/results/${resultId}/details/`;
+
+            // Get modal elements
+            const modelNameEl = document.getElementById('modal-model-name');
+            const datasetNameEl = document.getElementById('modal-dataset-name');
+            const metricsTable = document.getElementById('modal-metrics-table');
+            const plotContainer = document.getElementById('modal-plot-container');
+
+            // Clear previous content
+            metricsTable.innerHTML = '<tbody><tr><td>Loading...</td></tr></tbody>';
+            plotContainer.innerHTML = '';
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch results.');
+                const data = await response.json();
+
+                // Populate modal
+                modelNameEl.textContent = data.model_name;
+                datasetNameEl.textContent = data.dataset_name;
+
+                // Populate metrics table
+                let metricsHtml = '<tbody>';
+                for (const [key, value] of Object.entries(data.metrics)) {
+                    metricsHtml += `<tr><th>${key}</th><td>${parseFloat(value).toFixed(4)}</td></tr>`;
+                }
+                metricsHtml += '</tbody>';
+                metricsTable.innerHTML = metricsHtml;
+
+                // Populate plot
+                if (data.plot) {
+                    plotContainer.innerHTML = `<img src="data:image/png;base64,${data.plot}" class="img-fluid" alt="Evaluation Plot">`;
+                } else {
+                    plotContainer.innerHTML = '<p class="text-muted">No plot available for this evaluation (likely a classification task).</p>';
+                }
+
+            } catch (error) {
+                console.error(error);
+                metricsTable.innerHTML = '<tbody><tr><td>Failed to load results.</td></tr></tbody>';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

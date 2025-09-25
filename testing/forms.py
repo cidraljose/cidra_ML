@@ -10,14 +10,14 @@ class TestingForm(forms.Form):
     model = forms.ModelChoiceField(
         queryset=MLModel.objects.all(),
         label="Select Model to Test",
-        empty_label="---------",
+        empty_label="--",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     # Field to select the dataset for testing
     dataset = forms.ModelChoiceField(
         queryset=Dataset.objects.all(),
         label="Select Test Dataset",
-        empty_label="---------",
+        empty_label="--",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 
