@@ -2,7 +2,12 @@ from django.urls import path
 
 from manage_MLmodels.views import get_dataset_columns, get_model_details
 
-from .views import download_test_with_predictions, get_test_result_details, testing
+from .views import (
+    delete_test_result,
+    download_test_with_predictions,
+    get_test_result_details,
+    testing,
+)
 
 urlpatterns = [
     path("testing/", testing, name="testing_view"),
@@ -17,13 +22,18 @@ urlpatterns = [
         name="get_model_details_view",
     ),
     path(
-        "results/<int:result_id>/details/",
+        "testing/results/<int:result_id>/details/",
         get_test_result_details,
         name="get_test_result_details_view",
     ),
     path(
-        "results/<int:result_id>/download/",
+        "testing/results/<int:result_id>/download/",
         download_test_with_predictions,
         name="download_with_predictions_view",
+    ),
+    path(
+        "testing/results/<int:result_id>/delete/",
+        delete_test_result,
+        name="delete_test_result_view",
     ),
 ]

@@ -31,7 +31,7 @@ urlpatterns = [
     path(
         "manage_MLmodels/get_dataset_columns/<int:dataset_id>/",
         get_dataset_columns,
-        name="get_dataset_columns_view",
+        name="get_model_dataset_columns_view",
     ),
     path(
         "manage_MLmodels/<int:MLmodel_id>/row/",

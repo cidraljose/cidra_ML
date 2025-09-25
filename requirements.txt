@@ -3,3 +3,4 @@ seaborn
 celery
 django-celery-results
 sqlalchemy
+kaleido

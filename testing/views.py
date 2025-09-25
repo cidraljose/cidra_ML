@@ -4,7 +4,8 @@ import pandas as pd
 from autogluon.tabular import TabularPredictor
 from django.contrib import messages
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET
 
 from .forms import TestingForm
@@ -116,3 +117,16 @@ def download_test_with_predictions(request, result_id):
         raise Http404("The original dataset file could not be found.")
     except Exception as e:
         raise Http404(f"An error occurred while preparing the download: {e}")
+
+
+def delete_test_result(request, result_id):
+    """
+    Deletes a test result instance.
+    """
+    if request.method == "POST":
+        result = get_object_or_404(TestResult, pk=result_id)
+        result.delete()
+        # messages.success(request, "Test result deleted successfully.")
+        # Redirect back to the testing page with a hash to open the history tab
+        return redirect(reverse("testing_view") + "#history-panel")
+    raise Http404()
