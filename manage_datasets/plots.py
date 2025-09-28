@@ -51,7 +51,9 @@ def create_countplot(df, column):
     sns.countplot(x=df[column], ax=ax, order=df[column].value_counts().index)
     ax.yaxis.set_label_text("Count")
     ax.xaxis.set_label_text("Type")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+    ax.set_xticklabels(
+        ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor"
+    )
     fig.tight_layout()
     return fig_to_base64(fig)
 

@@ -48,7 +48,7 @@
                             </ul>
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-info mb-1 visualize-btn" data-url="{% url 'visualize_dataset_view' ds.pk %}">Visualize</button>
+                            <button type="button" class="btn btn-sm btn-info mb-1 visualize-btn" data-url="{% url 'visualize_dataset_view' ds.pk %}" data-bs-toggle="modal" data-bs-target="#visualizationModal">Visualize</button>
                             <a href="{% url 'download_dataset_view' ds.pk %}" class="btn btn-sm btn-success mb-1">Download</a>
                             <a href="{% url 'delete_dataset_view' ds.pk %}" class="btn btn-sm btn-danger mb-1" onclick="return confirm('Are you sure you want to permanently delete this dataset?');">Delete</a>
                         </td>
@@ -126,58 +126,28 @@
     </div>
 </div>
 
-<!-- Container for visualizations -->
-<div id="visualization-container" class="mt-4"></div>
+<!-- Visualization Modal -->
+<div class="modal fade" id="visualizationModal" tabindex="-1" aria-labelledby="visualizationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header justify-content-between">
+        <h5 class="modal-title" id="visualizationModalLabel">
+            Dataset Visualization: "<span id="modalDatasetName"></span>"
+        </h5>
+        <div class="d-flex align-items-center">
+            <div id="modalRefreshButtonContainer" class="me-2"></div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body" id="visualizationModalBody">
+        <!-- Content will be loaded here by JavaScript -->
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const visualizationContainer = document.getElementById('visualization-container');
-    const visualizeButtons = document.querySelectorAll('.visualize-btn');
-
-    visualizeButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const url = this.dataset.url;
-
-            // Show a loading message
-            visualizationContainer.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <strong class="ms-3">Generating visualizations...</strong>
-                </div>`;
-
-            fetch(url)
-                .then(response => response.text())
-                .then(html => {
-                    visualizationContainer.innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error fetching visualization:', error);
-                    visualizationContainer.innerHTML = '<div class="alert alert-danger">Could not load visualizations. Please try again.</div>';
-                });
-        });
-    });
-
-    // Use event delegation for the refresh button since it's dynamically loaded
-    visualizationContainer.addEventListener('click', function(event) {
-        if (event.target.classList.contains('refresh-plots-btn')) {
-            const url = event.target.dataset.url;
-            visualizationContainer.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <strong class="ms-3">Re-generating visualizations...</strong>
-                </div>`;
-            
-            fetch(url)
-                .then(response => response.text())
-                .then(html => { visualizationContainer.innerHTML = html; })
-                .catch(error => console.error('Error refreshing visualization:', error));
-        }
-    });
-
     // --- Logic for Merge Datasets Tab ---
     const mergeDatasetsSelect = document.getElementById('{{ merge_form.datasets.id_for_label }}');
     const mergeColumnsContainer = document.getElementById('merge-columns-container');
@@ -219,6 +189,92 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 })
                 .catch(error => console.error('Error fetching columns for merging:', error));
+            }
+        });
+    }
+
+    // --- Logic for Visualization Modal ---
+    const visualizationModal = document.getElementById('visualizationModal');
+    if (visualizationModal) {
+        visualizationModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const url = button.dataset.url;
+            const modalBody = document.getElementById('visualizationModalBody');
+
+            // Show a loading message inside the modal
+            modalBody.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <strong class="ms-3">Generating visualizations...</strong>
+                </div>`;
+
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    // Create a temporary div to parse the incoming HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+
+                    // Find the header and the content within the partial
+                    const partialHeader = tempDiv.querySelector('.card-header');
+                    const partialBody = tempDiv.querySelector('.card-body');
+
+                    // Move the refresh button and set the dataset name in the modal's main header
+                    document.getElementById('modalDatasetName').textContent = partialHeader.querySelector('h3').textContent.replace('Dataset: ', '');
+                    document.getElementById('modalRefreshButtonContainer').innerHTML = partialHeader.querySelector('div').innerHTML;
+
+                    // Set the modal body with the remaining content
+                    modalBody.innerHTML = partialBody ? partialBody.innerHTML : 'Could not parse content.';
+                })
+                .catch(error => {
+                    console.error('Error fetching visualization:', error);
+                    modalBody.innerHTML = '<div class="alert alert-danger">Could not load visualizations. Please try again.</div>';
+                });
+        });
+
+        // Handle the refresh button inside the modal
+        visualizationModal.addEventListener('click', function(event) {
+            if (event.target.classList.contains('refresh-plots-btn')) {
+                const modalBody = document.getElementById('visualizationModalBody');
+                const url = event.target.dataset.url;
+
+                // Clear the refresh button while loading to prevent double clicks
+                document.getElementById('modalRefreshButtonContainer').innerHTML = '';
+
+                // Show a loading message inside the modal
+                modalBody.innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <strong class="ms-3">Refreshing visualizations...</strong>
+                    </div>`;
+
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        // Re-run the same logic as the initial load
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+
+                        const partialHeader = tempDiv.querySelector('.card-header');
+                        const partialBody = tempDiv.querySelector('.card-body');
+
+                        // Restore the refresh button and dataset name
+                        document.getElementById('modalDatasetName').textContent = partialHeader.querySelector('h3').textContent.replace('Dataset: ', '');
+                        document.getElementById('modalRefreshButtonContainer').innerHTML = partialHeader.querySelector('div').innerHTML;
+
+                        // Update the body
+                        if (partialBody) {
+                            modalBody.innerHTML = partialBody.innerHTML;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing visualization:', error);
+                        modalBody.innerHTML = '<div class="alert alert-danger">Could not refresh visualizations. Please try again.</div>';
+                    });
             }
         });
     }

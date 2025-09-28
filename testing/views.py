@@ -79,9 +79,20 @@ def get_test_result_details(request, result_id):
     Returns the evaluation metrics and plot for a specific test result.
     """
     result = get_object_or_404(TestResult, pk=result_id)
+    leaderboard_payload = None
+    if result.leaderboard_data and "columns" in result.leaderboard_data:
+        leaderboard_payload = {
+            "headers": result.leaderboard_data["columns"],
+            "rows": result.leaderboard_data["data"],
+            "scores": [
+                row[1] for row in result.leaderboard_data["data"]
+            ],  # Assuming score is the second column
+            "model_names": [row[0] for row in result.leaderboard_data["data"]],
+        }
     return JsonResponse(
         {
             "metrics": result.evaluation_metrics,
+            "leaderboard": leaderboard_payload,
             "plot": result.plot,
             "model_name": result.model.name,
             "dataset_name": result.dataset.name,

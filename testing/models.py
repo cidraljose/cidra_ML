@@ -16,6 +16,7 @@ class TestResult(models.Model):
     evaluation_metrics = models.JSONField()
     predictions = models.JSONField(null=True, blank=True)
     plot = models.TextField(null=True, blank=True)
+    leaderboard_data = models.JSONField(null=True, blank=True)
     test_date = models.DateTimeField(auto_now_add=True)
     evaluation_plots = models.JSONField(default=dict, blank=True)
 

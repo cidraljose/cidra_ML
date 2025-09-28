@@ -22,12 +22,11 @@
 <td>{{ model.target|default_if_none:"N/A" }}</td>
 <td>{{ model.date|date:"Y-m-d H:i" }}</td>
 <td>{{ model.formatted_training_duration|default:"N/A" }}</td>
-<td>
-    <a href="{% url 'visualize_MLmodel_view' model.id %}"
-        class="btn btn-sm btn-info mb-2 visualize-btn" 
-        ><i class="bi bi-eye-fill"></i>
+<td class="text-nowrap">
+    <button type="button" class="btn btn-sm btn-info mb-2" data-bs-toggle="modal" data-bs-target="#modelVisualizationModal" data-model-id="{{ model.id }}">
+        <i class="bi bi-eye-fill"></i>
         Visualize
-    </a>
+    </button>
     {% if model.file %}
     <a href="{% url 'download_MLmodel_view' model.id %}"
         class="btn btn-sm btn-success mb-2">

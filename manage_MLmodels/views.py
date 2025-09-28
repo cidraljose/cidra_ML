@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import zipfile
 
+import pandas as pd
 from django.conf import settings
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -274,8 +275,24 @@ def visualize_MLmodel(request, MLmodel_id):
     Display details and cached evaluation results for an ML model.
     """
     model_obj = get_object_or_404(MLModel, id=MLmodel_id)
-    context = {"model": model_obj}
-    return render(request, "_visualize_MLmodel_partial.html", context)
+    leaderboard_data = None
+
+    # Process the leaderboard data from the model's evaluation_metrics
+    if model_obj.evaluation_metrics and isinstance(model_obj.evaluation_metrics, dict):
+        try:
+            # Reconstruct DataFrame to easily get headers and rows
+            df = pd.DataFrame.from_dict(model_obj.evaluation_metrics)
+            df = df.reset_index().rename(columns={"index": "model"})
+            leaderboard_data = {
+                "headers": [h.replace("_", " ") for h in df.columns.tolist()],
+                "rows": df.values.tolist(),
+            }
+        except Exception:
+            # Fallback for unexpected format
+            leaderboard_data = None
+
+    context = {"model": model_obj, "leaderboard_data": leaderboard_data}
+    return render(request, "_visualize_MLmodel_details_partial.html", context)
 
 
 @require_GET

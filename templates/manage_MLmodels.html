@@ -103,6 +103,21 @@
         </div>
     </div>
 </div>
+
+<!-- Model Visualization Modal -->
+<div class="modal fade" id="modelVisualizationModal" tabindex="-1" aria-labelledby="modelVisualizationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modelVisualizationModalLabel">Model Visualization</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modelVisualizationModalBody">
+        <!-- Content will be loaded here by JavaScript -->
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -244,6 +259,40 @@ document.addEventListener('DOMContentLoaded', function() {
             const modelId = row.id.split('-').pop();
             const intervalId = setInterval(() => pollStatus(modelId, row), pollingInterval);
             activePollers.set(modelId, intervalId);
+        });
+    }
+
+    // --- Logic for Model Visualization Modal ---
+    const modelVisualizationModal = document.getElementById('modelVisualizationModal');
+    if (modelVisualizationModal) {
+        modelVisualizationModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const modelId = button.dataset.modelId;
+            const url = `{% url 'visualize_MLmodel_view' 0 %}`.replace('0', modelId);
+            const modalBody = document.getElementById('modelVisualizationModalBody');
+            const modalTitle = document.getElementById('modelVisualizationModalLabel');
+
+            // Show a loading message inside the modal
+            modalTitle.textContent = 'Loading Visualization...';
+            modalBody.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <strong class="ms-3">Fetching model details...</strong>
+                </div>`;
+
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    modalBody.innerHTML = html;
+                    // The partial might contain a title, let's find it and set the modal title
+                    const newTitle = modalBody.querySelector('h1, h2, h3, h4, h5');
+                    if (newTitle) {
+                        modalTitle.innerHTML = newTitle.innerHTML;
+                        newTitle.remove(); // Remove the title from the body to avoid duplication
+                    }
+                });
         });
     }
 });

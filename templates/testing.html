@@ -99,7 +99,7 @@
                             <td>{{ result.evaluation_metrics.accuracy|default:"N/A"|floatformat:4 }}</td>
                             <td>
                                 <button class="btn btn-sm btn-info view-results-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#resultsModal">
-                                    View
+                                    Visualize
                                 </button>
                                 <a href="{% url 'download_with_predictions_view' result.id %}" class="btn btn-sm btn-success" title="Download test data with predictions">
                                     Download
