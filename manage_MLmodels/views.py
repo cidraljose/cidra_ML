@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 
 from manage_datasets.models import Dataset
+from testing.models import TestResult
 
 from .forms import TrainMLModelForm, UploadMLModelForm
 from .models import MLModel
@@ -48,12 +49,6 @@ def get_dataset_columns(request, dataset_id):
 
 
 def manage_MLmodels(request):
-    """
-    Version that:
-     - populates target/features via GET?train-dataset=<id> (if used),
-     - on submission with errors, retains selected values,
-     - exposes selected_features/selected_target in the context for JS to reapply.
-    """
     upload_form = None
     train_form = None
     selected_target = ""
@@ -151,7 +146,6 @@ def manage_MLmodels(request):
 
             if train_form.is_valid():
                 data = train_form.cleaned_data
-                # Calculate total time limit in seconds
                 hours = data.get("training_hours", 0)
                 minutes = data.get("training_minutes", 0)
                 time_limit_seconds = (hours * 3600) + (minutes * 60)
@@ -187,9 +181,7 @@ def manage_MLmodels(request):
                     if isinstance(dataset.columns, dict)
                     else list(dataset.columns or [])
                 )
-                choices = [
-                    (c, c) for c in columns
-                ]  # Instantiate with the dataset's initial value to show the select already with a value
+                choices = [(c, c) for c in columns]
                 train_form = TrainMLModelForm(
                     prefix="train", initial={"dataset": dataset}
                 )
@@ -275,24 +267,40 @@ def visualize_MLmodel(request, MLmodel_id):
     Display details and cached evaluation results for an ML model.
     """
     model_obj = get_object_or_404(MLModel, id=MLmodel_id)
+    # Get all test results to be listed in a dropdown
+    test_results = model_obj.test_results.order_by("-test_date").all()
+
+    context = {
+        "model": model_obj,
+        "test_results": test_results,
+    }
+    return render(request, "_visualize_MLmodel_details_partial.html", context)
+
+
+@require_GET
+def get_leaderboard_data(request, result_id):
+    """
+    Returns leaderboard data for a specific test result as JSON.
+    """
+
+    test_result = get_object_or_404(TestResult, pk=result_id)
     leaderboard_data = None
 
-    # Process the leaderboard data from the model's evaluation_metrics
-    if model_obj.evaluation_metrics and isinstance(model_obj.evaluation_metrics, dict):
+    if test_result and test_result.leaderboard_data:
         try:
-            # Reconstruct DataFrame to easily get headers and rows
-            df = pd.DataFrame.from_dict(model_obj.evaluation_metrics)
-            df = df.reset_index().rename(columns={"index": "model"})
+            # Reconstruct the DataFrame from the 'split' dictionary format
+            # The format is: {'index': [...], 'columns': [...], 'data': [[...], ...]}
+            lb_dict = test_result.leaderboard_data
+            df = pd.DataFrame(lb_dict["data"], columns=lb_dict["columns"])
+
             leaderboard_data = {
                 "headers": [h.replace("_", " ") for h in df.columns.tolist()],
                 "rows": df.values.tolist(),
             }
         except Exception:
-            # Fallback for unexpected format
             leaderboard_data = None
 
-    context = {"model": model_obj, "leaderboard_data": leaderboard_data}
-    return render(request, "_visualize_MLmodel_details_partial.html", context)
+    return JsonResponse({"leaderboard_data": leaderboard_data})
 
 
 @require_GET

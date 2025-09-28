@@ -6,6 +6,7 @@ from .views import (
     delete_MLmodel,
     download_MLmodel,
     get_dataset_columns,
+    get_leaderboard_data,
     get_MLmodel_row_partial,
     manage_MLmodels,
     visualize_MLmodel,
@@ -34,8 +35,13 @@ urlpatterns = [
         name="get_model_dataset_columns_view",
     ),
     path(
-        "manage_MLmodels/<int:MLmodel_id>/row/",
+        "manage_MLmodels/row/<int:MLmodel_id>",
         get_MLmodel_row_partial,
         name="get_MLmodel_row_partial",
+    ),
+    path(
+        "manage_MLmodels/leaderboards/<int:result_id>",
+        get_leaderboard_data,
+        name="get_leaderboard_data_view",
     ),
 ]

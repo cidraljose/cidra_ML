@@ -40,12 +40,16 @@ def testing(request):
                     real_values, predictions
                 )
 
-                # leaderboard = predictor.leaderboard(test_data)
+                # Generate and save the leaderboard for the test data
+                leaderboard_df = predictor.leaderboard(test_data, silent=True)
+                leaderboard_df = leaderboard_df.reset_index()
+
                 TestResult.objects.create(
                     model=ml_model,
                     dataset=dataset,
                     evaluation_metrics=evaluation_results,
                     predictions=predictions.tolist(),
+                    leaderboard_data=leaderboard_df.to_dict("split"),
                     plot=evaluation_plot,
                 )
                 messages.success(
@@ -84,9 +88,7 @@ def get_test_result_details(request, result_id):
         leaderboard_payload = {
             "headers": result.leaderboard_data["columns"],
             "rows": result.leaderboard_data["data"],
-            "scores": [
-                row[1] for row in result.leaderboard_data["data"]
-            ],  # Assuming score is the second column
+            "scores": [row[1] for row in result.leaderboard_data["data"]],
             "model_names": [row[0] for row in result.leaderboard_data["data"]],
         }
     return JsonResponse(
@@ -136,8 +138,17 @@ def delete_test_result(request, result_id):
     """
     if request.method == "POST":
         result = get_object_or_404(TestResult, pk=result_id)
+        model = result.model
+
+        # Delete the test result object
         result.delete()
-        # messages.success(request, "Test result deleted successfully.")
+
+        # Clear evaluation fields on the related model
+        model.is_evaluated = False
+        model.evaluation_date = None
+        model.evaluation_plots = None
+        model.save()
+
         # Redirect back to the testing page with a hash to open the history tab
         return redirect(reverse("testing_view") + "#history-panel")
     raise Http404()

@@ -43,12 +43,6 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         dataset_instance = Dataset.objects.get(id=dataset_id)
         train_data = pd.read_csv(dataset_instance.file.path)
 
-        # Ensure the target column is not in the list of features to prevent data leakage.
-        features = [f for f in features if f != target]
-
-        columns_to_use = features + [target]
-        train_data = train_data[columns_to_use]
-
         model_slug = slugify(model_instance.name)
         model_name = f"{model_slug}_{model_instance.id}"
         model_path = os.path.join(settings.MEDIA_ROOT, "MLmodels", model_name)
@@ -68,7 +62,10 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         model_instance.file.name = os.path.join("MLmodels", model_name)
         model_instance.training_duration = timedelta(seconds=duration_seconds)
         model_instance.features = predictor.feature_metadata_in.get_features()
-        model_instance.evaluation_metrics = predictor.leaderboard(silent=True).to_dict()
+
+        # Reset index to make 'model' a column before saving
+        leaderboard_df = predictor.leaderboard(silent=True).reset_index()
+        model_instance.evaluation_metrics = leaderboard_df.to_dict()
         model_instance.evaluation_date = timezone.now()
 
         # Clear description in case it was a retry of a failed task
