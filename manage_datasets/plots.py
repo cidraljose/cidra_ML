@@ -99,7 +99,7 @@ def create_missing_values_plot(df):
     if missing_values.empty:
         return None
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(6, 3))
     missing_values.sort_values(ascending=False).plot(kind="bar", ax=ax)
     ax.set_title("")
     ax.set_xlabel("Features")
