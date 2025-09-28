@@ -150,6 +150,11 @@ def manage_MLmodels(request):
 
             if train_form.is_valid():
                 data = train_form.cleaned_data
+                # Calculate total time limit in seconds
+                hours = data.get("training_hours", 0)
+                minutes = data.get("training_minutes", 0)
+                time_limit_seconds = (hours * 3600) + (minutes * 60)
+
                 new_model = MLModel.objects.create(
                     name=data["name"],
                     related_dataset=data["dataset"],
@@ -162,7 +167,7 @@ def manage_MLmodels(request):
                     dataset_id=data["dataset"].id,
                     target=data["target"],
                     features=data["features"],
-                    time_limit=data["time_limit"],
+                    time_limit=time_limit_seconds,
                     presets=data["presets"],
                 )
                 return redirect("manage_MLmodels_view")

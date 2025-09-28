@@ -41,8 +41,17 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">{{ train_form.time_limit.label_tag }} {{ train_form.time_limit }}</div>
-                        <div class="col-md-6 mb-3">{{ train_form.presets.label_tag }} {{ train_form.presets }}</div>
+                        <div class="col-md-3 mb-3">
+                            {{ train_form.training_hours.label_tag }}
+                            {{ train_form.training_hours }}
+                            <div class="form-text">{{ train_form.training_hours.help_text }}</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            {{ train_form.training_minutes.label_tag }}
+                            {{ train_form.training_minutes }}
+                            <div class="form-text">{{ train_form.training_minutes.help_text }}</div>
+                        </div>
+                        <div class="col-md-6 mb-3">{{ train_form.presets.label_tag }} {{ train_form.presets }} </div>
                     </div>
                     <button type="submit" name="train_model" class="btn btn-primary">Start Training</button>
                 </form>
@@ -74,6 +83,7 @@
                             <th scope="col">Features</th>
                             <th scope="col">Target</th>
                             <th scope="col">Created on</th>
+                            <th scope="col">Training Time</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -84,7 +94,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No models found.</td>
+                            <td colspan="8" class="text-center">No models found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

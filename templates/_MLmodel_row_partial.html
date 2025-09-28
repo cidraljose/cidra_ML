@@ -21,6 +21,7 @@
 </td>
 <td>{{ model.target|default_if_none:"N/A" }}</td>
 <td>{{ model.date|date:"Y-m-d H:i" }}</td>
+<td>{{ model.formatted_training_duration|default:"N/A" }}</td>
 <td>
     <a href="{% url 'visualize_MLmodel_view' model.id %}"
         class="btn btn-sm btn-info mb-2 visualize-btn" 

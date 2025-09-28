@@ -38,7 +38,7 @@
 
         {% if plots.pdf_plot %}
         <div class="mt-4 text-center">
-            <h4>Kernel Density Estimate Plot (Data Scaled with MinMax)</h4>
+            <h4>Kernel Density Estimate Plot (using MinMaxScaler)</h4>
             <img src="data:image/png;base64,{{ plots.pdf_plot }}" alt="PDF Plot" class="img-fluid border rounded">
         </div>
         {% endif %}

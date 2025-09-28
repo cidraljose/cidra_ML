@@ -1,6 +1,8 @@
 # celery -A cidra_ML worker -l info -P solo
 import os
 import sys
+import time
+from datetime import timedelta
 
 import pandas as pd
 from autogluon.tabular import TabularPredictor
@@ -52,15 +54,19 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         model_path = os.path.join(settings.MEDIA_ROOT, "MLmodels", model_name)
 
         # Train the model
+        start_time = time.time()
         predictor = TabularPredictor(path=model_path, label=target).fit(
             train_data=train_data,
             time_limit=time_limit,
             presets=presets,
         )
+        end_time = time.time()
+        duration_seconds = end_time - start_time
 
         # Update the MLModel instance with the results
         model_instance.status = "COMPLETED"
         model_instance.file.name = os.path.join("MLmodels", model_name)
+        model_instance.training_duration = timedelta(seconds=duration_seconds)
         model_instance.features = predictor.feature_metadata_in.get_features()
         model_instance.evaluation_metrics = predictor.leaderboard(silent=True).to_dict()
         model_instance.evaluation_date = timezone.now()
