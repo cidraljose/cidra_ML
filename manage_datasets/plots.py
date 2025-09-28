@@ -22,13 +22,6 @@ def fig_to_base64(fig):
     return img_str
 
 
-def create_boxplot(df, column):
-    """Generates a box plot for a given column."""
-    fig, ax = plt.subplots()
-    sns.boxplot(y=df[column], ax=ax)
-    return fig_to_base64(fig)
-
-
 def create_correlation_heatmap(df, numerical_cols):
     """Generates a correlation heatmap for numerical columns."""
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -71,42 +64,46 @@ def create_histogram(df, column):
     return fig_to_base64(fig)
 
 
-def create_pairplot(df, numerical_cols, color_col=None):
-    """Generates a pair plot for numerical columns, optionally colored by a categorical column."""
-    hue = None
-    if color_col and color_col in df.columns and df[color_col].dtype == "object":
-        hue = color_col
-
-    pair_plot = sns.pairplot(df, vars=numerical_cols, hue=hue)
-    pair_plot.fig.suptitle(
-        f"Pair Plot colored by {color_col}" if hue else "Pair Plot", y=1.02
-    )
-    return fig_to_base64(pair_plot.fig)
-
-
-def create_scatter_matrix(df, numerical_cols):
-    """Generates a scatter matrix for numerical columns."""
-    pair_plot = sns.pairplot(df[numerical_cols])
-    pair_plot.fig.suptitle("Scatter Matrix", y=1.02)
-    return fig_to_base64(pair_plot.fig)
-
-
-def create_pdf_plot(df, numerical_cols):
-    """Generates a single plot with PDF/KDE for all numerical columns."""
+def create_normalized_pdf_plot(df, numerical_cols):
+    """
+    Generates a single plot with PDF/KDE for all numerical columns.
+    Each column's values are scaled to a [0, 1] range for comparison, using MinMax scaler.
+    """
     fig, ax = plt.subplots(figsize=(12, 7))
-    for col in numerical_cols:
-        sns.kdeplot(df[col], ax=ax, label=col, fill=True, alpha=0.2)
+    # Generate a list of colors from the color-blind friendly "viridis" colormap
+    colors = plt.cm.viridis(np.linspace(0, 1, len(numerical_cols)))
+
+    for i, col in enumerate(numerical_cols):
+        data = df[col]
+        scaled_data = (data - data.min()) / (data.max() - data.min())
+        sns.kdeplot(
+            data=scaled_data,
+            ax=ax,
+            label=f"{col}",
+            color=colors[i],
+            fill=True,
+            alpha=0.5,
+            linewidth=0,
+        )
     ax.legend()
+    ax.set_xlabel("Value (MinMax scaled)")
+    ax.set_ylabel("Density")
     return fig_to_base64(fig)
 
 
-def create_normalized_pdf_plot(df, numerical_cols):
-    """Generates a single plot with PDF/KDE for all numerical columns after normalization."""
-    fig, ax = plt.subplots(figsize=(12, 7))
-    for col in numerical_cols:
-        normalized_data = df[col] / float(df[col].max())  # value / max_value
-        sns.kdeplot(
-            normalized_data, ax=ax, label=f"{col} (Normalized)", fill=True, alpha=0.2
-        )
-    ax.legend()
+def create_missing_values_plot(df):
+    """Generates a bar plot showing the count of missing values for each column."""
+    missing_values = df.isnull().sum()
+    missing_values = missing_values[missing_values > 0]
+
+    if missing_values.empty:
+        return None
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    missing_values.sort_values(ascending=False).plot(kind="bar", ax=ax)
+    ax.set_title("")
+    ax.set_xlabel("Features")
+    ax.set_ylabel("Number of Missing Values")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+    fig.tight_layout()
     return fig_to_base64(fig)

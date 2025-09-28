@@ -15,8 +15,9 @@ class TestResult(models.Model):
     )
     evaluation_metrics = models.JSONField()
     predictions = models.JSONField(null=True, blank=True)
-    plot = models.TextField(null=True, blank=True)  # Store plot as base64 string
+    plot = models.TextField(null=True, blank=True)
     test_date = models.DateTimeField(auto_now_add=True)
+    evaluation_plots = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-test_date"]

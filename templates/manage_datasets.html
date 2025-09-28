@@ -159,6 +159,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Use event delegation for the refresh button since it's dynamically loaded
+    visualizationContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('refresh-plots-btn')) {
+            const url = event.target.dataset.url;
+            visualizationContainer.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <strong class="ms-3">Re-generating visualizations...</strong>
+                </div>`;
+            
+            fetch(url)
+                .then(response => response.text())
+                .then(html => { visualizationContainer.innerHTML = html; })
+                .catch(error => console.error('Error refreshing visualization:', error));
+        }
+    });
+
     // --- Logic for Merge Datasets Tab ---
     const mergeDatasetsSelect = document.getElementById('{{ merge_form.datasets.id_for_label }}');
     const mergeColumnsContainer = document.getElementById('merge-columns-container');

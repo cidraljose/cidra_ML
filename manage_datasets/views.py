@@ -17,6 +17,7 @@ from .plots import (
     create_correlation_heatmap,
     create_countplot,
     create_histogram,
+    create_missing_values_plot,
     create_normalized_pdf_plot,
 )
 
@@ -242,9 +243,12 @@ def visualize_dataset(request, dataset_id):
     except Dataset.DoesNotExist:
         return redirect("manage_datasets_view")
 
+    refresh = request.GET.get("refresh", "false").lower() == "true"
+
     # Check if context is cached
     if (
-        dataset_obj.plots_context
+        not refresh
+        and dataset_obj.plots_context
         and dataset_obj.stats_context
         and dataset_obj.head_context
     ):
@@ -265,6 +269,11 @@ def visualize_dataset(request, dataset_id):
         buffer = io.StringIO()
         dataset_df.info(buf=buffer)
         stats["info"] = buffer.getvalue()
+        stats["missing_values_plot"] = create_missing_values_plot(dataset_df)
+        if not stats["missing_values_plot"]:
+            stats["missing_values_message"] = "None of the features have empty values."
+        else:
+            stats["missing_values_message"] = None
 
         # Numerial columns plots
         plots = {}
