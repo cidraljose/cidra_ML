@@ -1,0 +1,82 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h4>
+                <i class="bi bi-bar-chart-line-fill"></i>
+                Model Visualization: <strong>{{ model.name }}</strong>
+            </h4>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Model Details -->
+        <div class="col-md-4">
+            <h5><i class="bi bi-info-circle"></i> Model Details</h5>
+            <ul class="list-group">
+                <li class="list-group-item"><strong>Status:</strong> {{ model.get_status_display }}</li>
+                <li class="list-group-item"><strong>Target Variable:</strong> {{ model.target }}</li>
+                <li class="list-group-item"><strong>Related Dataset:</strong> {{ model.related_dataset.name|default:"N/A" }}</li>
+                <li class="list-group-item"><strong>Created On:</strong> {{ model.date|date:"Y-m-d H:i" }}</li>
+                <li class="list-group-item"><strong>Last Evaluated:</strong> {{ model.evaluation_date|date:"Y-m-d H:i"|default:"N/A" }}</li>
+            </ul>
+
+            {% if model.evaluation_plots.feature_importance %}
+            <h5 class="mt-4"><i class="bi bi-diagram-3"></i> Feature Importance</h5>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Importance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feature, importance in model.evaluation_plots.feature_importance.importance.items %}
+                        <tr>
+                            <td>{{ feature }}</td>
+                            <td>{{ importance|floatformat:4 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: Leaderboard -->
+        <div class="col-md-8">
+            {% if leaderboard_data %}
+            <h5><i class="bi bi-trophy"></i> Model Leaderboard (from training)</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            {% for header in leaderboard_data.headers %}
+                                <th>{{ header }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in leaderboard_data.rows %}
+                        <tr>
+                            {% for cell in row %}
+                                <td>
+                                    {% if cell|stringformat:"s"|slice:"0:1" == "-" or cell|stringformat:"s"|slice:"0:1" >= "0" and cell|stringformat:"s"|slice:"0:1" <= "9" %}
+                                        {{ cell|floatformat:4 }}
+                                    {% else %}
+                                        {{ cell }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mt-4">No evaluation metrics (leaderboard) are available for this model.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>

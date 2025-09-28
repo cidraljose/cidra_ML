@@ -15,6 +15,9 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="split-tab" data-bs-toggle="tab" data-bs-target="#split-panel" type="button" role="tab" aria-controls="split-panel" aria-selected="false">Split Dataset</button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="merge-tab" data-bs-toggle="tab" data-bs-target="#merge-panel" type="button" role="tab" aria-controls="merge-panel" aria-selected="false">Merge Datasets</button>
+    </li>
 </ul>
 
 <div class="tab-content" id="datasetTabsContent">
@@ -100,6 +103,27 @@
             </form>
         </div>
     </div>
+
+    <!-- Panel 4: Merge datasets -->
+    <div class="tab-pane fade" id="merge-panel" role="tabpanel" aria-labelledby="merge-tab">
+        <div class="card card-body mt-3">
+            <h5 class="card-title">Merge Multiple Datasets</h5>
+            <p class="card-text">Select multiple datasets to merge them vertically (append rows). The new dataset will contain rows from all selected datasets. Columns will be aligned by name.</p>
+            <form method="post">
+                {% csrf_token %}
+                {% for field in merge_form %}
+                    <div class="mb-3">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<div class="alert alert-danger mt-1 p-2">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+                <div id="merge-columns-container" class="mb-3"></div>
+                <button type="submit" name="merge_datasets" class="btn btn-primary">Merge Datasets</button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Container for visualizations -->
@@ -134,6 +158,51 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         });
     });
+
+    // --- Logic for Merge Datasets Tab ---
+    const mergeDatasetsSelect = document.getElementById('{{ merge_form.datasets.id_for_label }}');
+    const mergeColumnsContainer = document.getElementById('merge-columns-container');
+
+    if (mergeDatasetsSelect) {
+        mergeDatasetsSelect.addEventListener('change', function() {
+            const selectedDatasetIds = Array.from(this.selectedOptions).map(option => option.value);
+            mergeColumnsContainer.innerHTML = ''; // Clear previous column selectors
+
+            if (selectedDatasetIds.length > 0) {
+                // Show a loading spinner
+                mergeColumnsContainer.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <strong class="ms-2">Loading columns...</strong>
+                    </div>`;
+
+                fetch("{% url 'get_multiple_dataset_columns_view' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ dataset_ids: selectedDatasetIds })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    mergeColumnsContainer.innerHTML = ''; // Clear loading spinner
+                    for (const [datasetId, details] of Object.entries(data.columns_data)) {
+                        let optionsHtml = details.columns.map(col => `<option value="${col}" selected>${col}</option>`).join('');
+                        let fieldHtml = `
+                            <div class="mb-3">
+                                <label for="id_columns_${datasetId}" class="form-label">Columns for <strong>${details.name}</strong></label>
+                                <select name="columns_${datasetId}" multiple class="form-select" size="6" id="id_columns_${datasetId}">
+                                    ${optionsHtml}
+                                </select>
+                            </div>`;
+                        mergeColumnsContainer.innerHTML += fieldHtml;
+                    }
+                })
+                .catch(error => console.error('Error fetching columns for merging:', error));
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 """Datasets page"""
 
 import io
+import json
 import os
 import uuid
 
@@ -8,8 +9,9 @@ import pandas as pd
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
-from .forms import SplitDatasetForm, UploadCSVForm
+from .forms import MergeDatasetsForm, SplitDatasetForm, UploadCSVForm
 from .models import Dataset
 from .plots import (
     create_correlation_heatmap,
@@ -54,6 +56,7 @@ def manage_datasets(request):
     datasets = Dataset.objects.all().order_by("-date")
     upload_form = UploadCSVForm()
     split_form = SplitDatasetForm()
+    merge_form = MergeDatasetsForm()
 
     if request.method == "POST":
         if "upload_csv" in request.POST:
@@ -82,6 +85,7 @@ def manage_datasets(request):
                         {
                             "upload_form": upload_form,
                             "split_form": split_form,
+                            "merge_form": merge_form,
                             "datasets": datasets,
                         },
                     )
@@ -123,10 +127,59 @@ def manage_datasets(request):
                 except Exception as e:
                     split_form.add_error(None, f"Error processing dataset: {e}")
 
+        elif "merge_datasets" in request.POST:
+            merge_form = MergeDatasetsForm(request.POST)
+            if merge_form.is_valid():
+                selected_datasets = merge_form.cleaned_data["datasets"]
+                new_name = merge_form.cleaned_data["new_dataset_name"]
+
+                if len(selected_datasets) < 2:
+                    merge_form.add_error(
+                        "datasets", "Please select at least two datasets to merge."
+                    )
+                else:
+                    try:
+                        dataframes_to_merge = []
+                        for ds in selected_datasets:
+                            # Get selected columns for this dataset from the POST data
+                            selected_columns = request.POST.getlist(f"columns_{ds.id}")
+                            if not selected_columns:
+                                raise ValueError(
+                                    f"No columns selected for dataset '{ds.name}'."
+                                )
+
+                            df = pd.read_csv(ds.file.path)
+                            # Reset index to ensure alignment, drop old index
+                            df = df[selected_columns].reset_index(drop=True)
+                            dataframes_to_merge.append(df)
+
+                        # Merge dataframes vertically (append rows)
+                        # ignore_index=True will create a new clean index for the merged dataframe
+                        merged_df = pd.concat(
+                            dataframes_to_merge, axis=0, ignore_index=True
+                        )
+
+                        # Create the new dataset instance
+                        _create_dataset_instance(
+                            name=new_name,
+                            description=f"Merged from {', '.join([d.name for d in selected_datasets])}",
+                            df=merged_df,
+                            user=request.user,
+                        )
+                        return redirect("manage_datasets_view")
+
+                    except Exception as e:
+                        merge_form.add_error(None, f"Error during merge: {e}")
+
     return render(
         request,
         "manage_datasets.html",
-        {"upload_form": upload_form, "split_form": split_form, "datasets": datasets},
+        {
+            "upload_form": upload_form,
+            "split_form": split_form,
+            "merge_form": merge_form,
+            "datasets": datasets,
+        },
     )
 
 
@@ -245,3 +298,29 @@ def visualize_dataset(request, dataset_id):
         }
 
     return render(request, "_visualize_dataset_partial.html", context)
+
+
+@require_POST
+def get_multiple_dataset_columns(request):
+    """
+    Returns a JSON object with the columns for a list of dataset IDs.
+    """
+    try:
+        data = json.loads(request.body)
+        dataset_ids = data.get("dataset_ids", [])
+        if not dataset_ids:
+            return JsonResponse({"error": "No dataset IDs provided"}, status=400)
+
+        datasets = Dataset.objects.filter(id__in=dataset_ids)
+        columns_data = {}
+        for ds in datasets:
+            columns_data[ds.id] = {
+                "name": ds.name,
+                "columns": (
+                    list(ds.columns.keys()) if isinstance(ds.columns, dict) else []
+                ),
+            }
+
+        return JsonResponse({"columns_data": columns_data})
+    except (json.JSONDecodeError, Exception) as e:
+        return JsonResponse({"error": str(e)}, status=400)

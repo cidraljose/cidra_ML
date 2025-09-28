@@ -1,4 +1,6 @@
+# celery -A cidra_ML worker -l info -P solo
 import os
+import sys
 
 import pandas as pd
 from autogluon.tabular import TabularPredictor
@@ -10,6 +12,8 @@ from django.utils.text import slugify
 from manage_datasets.models import Dataset
 
 from .models import MLModel
+
+CELERY_WORKER_REDIRECT_STDOUTS = False
 
 
 @shared_task
@@ -28,6 +32,11 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
     if time_limit == 0:
         time_limit = None
 
+    # Temporarily restore stdout/stderr to prevent 'fileno' error with ray/celery on Windows
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
     try:
         dataset_instance = Dataset.objects.get(id=dataset_id)
         train_data = pd.read_csv(dataset_instance.file.path)
@@ -44,7 +53,9 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
 
         # Train the model
         predictor = TabularPredictor(path=model_path, label=target).fit(
-            train_data=train_data, time_limit=time_limit, presets=presets
+            train_data=train_data,
+            time_limit=time_limit,
+            presets=presets,
         )
 
         # Update the MLModel instance with the results
@@ -63,3 +74,7 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         model_instance.status = "FAILED"
         model_instance.description = f"Training failed: {str(e)}"
         model_instance.save()
+    finally:
+        # Always restore the original stdout/stderr
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr

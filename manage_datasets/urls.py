@@ -2,7 +2,13 @@
 
 from django.urls import path
 
-from .views import delete_dataset, download_dataset, manage_datasets, visualize_dataset
+from .views import (
+    delete_dataset,
+    download_dataset,
+    get_multiple_dataset_columns,
+    manage_datasets,
+    visualize_dataset,
+)
 
 urlpatterns = [
     path("manage_datasets/", manage_datasets, name="manage_datasets_view"),
@@ -20,5 +26,10 @@ urlpatterns = [
         "manage_datasets/visualize<int:dataset_id>/",
         visualize_dataset,
         name="visualize_dataset_view",
+    ),
+    path(
+        "manage_datasets/merge/",
+        get_multiple_dataset_columns,
+        name="get_multiple_dataset_columns_view",
     ),
 ]

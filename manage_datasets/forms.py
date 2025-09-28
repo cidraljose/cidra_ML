@@ -59,3 +59,21 @@ class SplitDatasetForm(forms.Form):
         help_text="The percentage of data for the training set. The rest will be for the test set.",
         widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
+
+
+class MergeDatasetsForm(forms.Form):
+    """
+    Form for merging multiple datasets.
+    """
+
+    datasets = forms.ModelMultipleChoiceField(
+        queryset=Dataset.objects.all().order_by("-date"),
+        label="Select Datasets to Merge",
+        widget=forms.SelectMultiple(attrs={"class": "form-select", "size": "5"}),
+        help_text="Select two or more datasets. They will be appended to each other (vertical merge).",
+    )
+    new_dataset_name = forms.CharField(
+        label="New Dataset Name",
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
