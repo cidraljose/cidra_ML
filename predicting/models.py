@@ -11,7 +11,11 @@ class PredictionResult(models.Model):
         MLModel, on_delete=models.CASCADE, related_name="prediction_results"
     )
     dataset = models.ForeignKey(
-        Dataset, on_delete=models.CASCADE, related_name="prediction_results"
+        Dataset,
+        on_delete=models.SET_NULL,
+        related_name="prediction_results",
+        null=True,
+        blank=True,
     )
     prediction_file = models.FileField(upload_to="predictions/")
     prediction_date = models.DateTimeField(auto_now_add=True)

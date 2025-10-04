@@ -22,51 +22,64 @@
     <!-- Prediction Panel -->
     <div class="tab-pane fade show active" id="predict-panel" role="tabpanel" aria-labelledby="predict-tab">
         <div class="row mt-3">
-            <div class="col-md-6">
-                <h2>Evaluate a Model</h2>
-                <p>Select a trained model and a dataset to evaluate its performance.</p>
-                
+            <div class="col-md-8">
+                <h2>Make a Prediction</h2>
+                <p>Choose a method to provide data for prediction.</p>
+
                 {% if messages %}
                     {% for message in messages %}
                         <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
 
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="mb-3">
-                            {{ field.label_tag }}
-                            {{ field }}
-                            {% if field.help_text %}
-                                <small class="form-text text-muted">{{ field.help_text|safe }}</small>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ error }}
+                <!-- Sub Tabs -->
+                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="pills-dataset-tab" data-bs-toggle="pill" data-bs-target="#pills-dataset" type="button" role="tab" aria-controls="pills-dataset" aria-selected="true">From Dataset</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pills-manual-tab" data-bs-toggle="pill" data-bs-target="#pills-manual" type="button" role="tab" aria-controls="pills-manual" aria-selected="false">Manual Entry</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                    <!-- From Dataset Tab -->
+                    <div class="tab-pane fade show active" id="pills-dataset" role="tabpanel" aria-labelledby="pills-dataset-tab">
+                        <p>Select a trained model and a dataset to generate predictions for the entire file.</p>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% for field in dataset_form %}
+                                <div class="mb-3">
+                                    {{ field.label_tag }}
+                                    {{ field }}
+                                    {% for error in field.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
                                 </div>
                             {% endfor %}
-                        </div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary mt-3">Run Prediction</button>
-                </form>
-
-                <!-- Dynamic Info Display -->
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <div id="model-info-container" class="d-none">
-                            <h5>Model Details</h5>
-                            <p><strong>Target:</strong> <span id="model-target"></span></p>
-                            <p><strong>Features:</strong></p>
-                            <ul id="model-features" class="list-group" style="max-height: 300px; overflow-y: auto;"></ul>
-                        </div>
+                            <button type="submit" name="submit_dataset" class="btn btn-primary mt-3">Run Prediction on Dataset</button>
+                        </form>
                     </div>
-                    <div class="col-md-6">
-                        <div id="dataset-info-container" class="d-none">
-                            <h5>Dataset Details</h5>
-                            <p><strong>Columns:</strong></p>
-                            <ul id="dataset-columns" class="list-group" style="max-height: 300px; overflow-y: auto;"></ul>
-                        </div>
+
+                    <!-- Manual Entry Tab -->
+                    <div class="tab-pane fade" id="pills-manual" role="tabpanel" aria-labelledby="pills-manual-tab">
+                        <p>Select a model, then enter the feature values for a single prediction.</p>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <input type="hidden" name="manual-model" id="id_manual_model_hidden">
+                                {{ model_selection_form.model.label_tag }}
+                                {{ model_selection_form.model }}
+                                {% for error in model_selection_form.model.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Dynamic form fields will be inserted here -->
+                            <div id="manual-features-form" class="mt-4"></div>
+
+                            <button type="submit" name="submit_manual" id="submit_manual_button" class="btn btn-primary mt-3 d-none">Run Manual Prediction</button>
+                        </form>
                     </div>
                 </div>
 
@@ -94,8 +107,11 @@
                         <tr>
                             <td>{{ result.prediction_date|date:"Y-m-d H:i" }}</td>
                             <td>{{ result.model.name }}</td>
-                            <td>{{ result.dataset.name }}</td>
+                            <td>{{ result.dataset.name|default:"Manual Entry" }}</td>
                             <td>
+                                <button class="btn btn-sm btn-info visualize-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#visualizeModal" title="Visualize prediction results">
+                                    Visualize
+                                </button>
                                 <a href="{% url 'download_prediction_view' result.id %}" class="btn btn-sm btn-success" title="Download dataset with predictions">
                                     Download
                                 </a>
@@ -115,6 +131,26 @@
         </div>
     </div>
 </div>
+
+<!-- Visualize Modal -->
+<div class="modal fade" id="visualizeModal" tabindex="-1" aria-labelledby="visualizeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="visualizeModalLabel">Visualize Prediction Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="visualizeModalBody">
+        <!-- Content will be loaded here by JavaScript -->
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -129,6 +165,189 @@ document.addEventListener('DOMContentLoaded', function () {
         if (tabToActivate) {
             new bootstrap.Tab(tabToActivate).show();
         }
+    }
+
+    // --- Visualize Modal Logic ---
+    const visualizeModal = document.getElementById('visualizeModal');
+    if (visualizeModal) {
+        visualizeModal.addEventListener('show.bs.modal', async function (event) {
+            const button = event.relatedTarget;
+            const resultId = button.getAttribute('data-result-id');
+            const modalBody = document.getElementById('visualizeModalBody');
+            const url = `/predicting/visualize/${resultId}/`;
+
+            // Show loading spinner
+            modalBody.innerHTML = `<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to load visualization content.');
+                const html = await response.text();
+                modalBody.innerHTML = html;
+
+            } catch (error) {
+                modalBody.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Use event delegation for the form inside the modal.
+        // This listener is on the modal body and will catch submit events from any form within it.
+        const modalBody = document.getElementById('visualizeModalBody');
+        modalBody.addEventListener('submit', async function(e) {
+            // Check if the event was triggered by our form
+            if (e.target && e.target.id === 'visualize-form') {
+                e.preventDefault(); // Prevent default full-page submission
+
+                const form = e.target;
+                const url = form.action; // The form's action attribute holds the correct URL
+                const formData = new FormData(form);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
+                });
+                const newHtml = await response.text();
+                modalBody.innerHTML = newHtml; // Replace the modal content with the new response
+            }
+        });
+    }
+
+    // --- Manual Prediction Form Generation ---
+    const modelSelect = document.getElementById('id_model_manual');
+    const featuresFormContainer = document.getElementById('manual-features-form');
+    const hiddenModelInput = document.getElementById('id_manual_model_hidden');
+    const manualSubmitButton = document.getElementById('submit_manual_button');
+
+    modelSelect.addEventListener('change', function() {
+        const modelId = this.value;
+        featuresFormContainer.innerHTML = ''; // Clear previous form
+        manualSubmitButton.classList.add('d-none'); // Hide submit button
+
+        if (modelId) {
+            hiddenModelInput.value = modelId; // Keep hidden input in sync
+            fetch(`/predicting/get-model-features/${modelId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        // Throw an error to be caught by the .catch block
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.features && data.features.length > 0) {
+                        const features = data.features;
+                        let formHtml = `
+                            <h5>Enter Feature Values</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="manual-prediction-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 1%;">#</th>`;
+                        features.forEach(feature => {
+                            formHtml += `<th>${feature}</th>`;
+                        });
+                        formHtml += `<th style="width: 1%;"></th>`; // For delete button
+                        formHtml += `
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <button type="button" id="add-row-btn" class="btn btn-sm btn-success">+</button>
+                            `;
+                        featuresFormContainer.innerHTML = formHtml;
+                        manualSubmitButton.classList.remove('d-none'); // Show submit button
+                    } else {
+                        // This case handles a valid response but with no features
+                        featuresFormContainer.innerHTML = '<p class="text-warning">This model has no features defined.</p>';
+                    }
+                })
+                .then(() => {
+                    // This runs after the table structure is in the DOM
+                    const addRowBtn = document.getElementById('add-row-btn');
+                    if (addRowBtn) {
+                        // Add the first row automatically
+                        addRow(); 
+
+                        addRowBtn.addEventListener('click', addRow);
+
+                        // Event delegation for delete buttons
+                        const tableBody = document.querySelector('#manual-prediction-table tbody');
+                        tableBody.addEventListener('click', function(e) {
+                            // Use .closest() to handle clicks on the icon inside the button
+                            const deleteButton = e.target.closest('.delete-row-btn');
+                            if (deleteButton) {
+                                // Prevent deleting the last row
+                                if (tableBody.rows.length > 1) {
+                                    e.target.closest('tr').remove();
+                                    updateRowIndices();
+                                } else {
+                                    alert("You cannot delete the last row.");
+                                }
+                            }
+                        });
+                    }
+                    else {
+                        console.log("Could not find add row button");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching model features:', error);
+                    // Display a more informative error to the user
+                    featuresFormContainer.innerHTML = '<p class="text-danger">An error occurred while fetching model features. Please check the console for details or try again.</p>';
+                });
+        }
+    });
+
+    if (modelSelect.value) {
+        modelSelect.dispatchEvent(new Event('change'));
+    }
+
+    function addRow() {
+        const tableBody = document.querySelector('#manual-prediction-table tbody');
+        if (!tableBody) return;
+
+        const features = Array.from(document.querySelectorAll('#manual-prediction-table thead th'))
+                              .map(th => th.textContent)
+                              .filter(text => text && text !== '#'); // Filter out empty and index headers
+        const newRow = tableBody.insertRow();
+        const rowIndex = tableBody.rows.length - 1;
+
+        // Add index cell
+        const indexCell = newRow.insertCell();
+        indexCell.className = 'align-middle text-center';
+        indexCell.textContent = rowIndex + 1;
+
+        features.forEach(feature => {
+            const cell = newRow.insertCell();
+            cell.innerHTML = `<input type="text" name="${feature}[${rowIndex}]" class="form-control" required>`;
+        });
+
+        // Add delete button cell
+        const deleteCell = newRow.insertCell();
+        deleteCell.innerHTML = `<button type="button" class="btn btn-sm btn-danger delete-row-btn">-</button>`;
+        deleteCell.style.textAlign = 'center';
+    }
+
+    function updateRowIndices() {
+        const tableBody = document.querySelector('#manual-prediction-table tbody');
+        if (!tableBody) return;
+
+        // Update row indices in the first column
+        Array.from(tableBody.rows).forEach((row, rowIndex) => {
+            const indexCell = row.cells[0];
+            indexCell.textContent = rowIndex + 1;
+        });
+
+        Array.from(tableBody.rows).forEach((row, rowIndex) => {
+            row.querySelectorAll('input').forEach(input => {
+                const name = input.name.substring(0, input.name.lastIndexOf('['));
+                if (name) {
+                    input.name = `${name}[${rowIndex}]`;
+                }
+            });
+        });
     }
 });
 </script>

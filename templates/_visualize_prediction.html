@@ -1,0 +1,40 @@
+<p>
+    <strong>Model:</strong> {{ result.model.name }}<br>
+    <strong>Input:</strong> {{ result.dataset.name }}
+</p>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Generate Plot</h5>
+        <p class="card-text">Select a feature or two to plot against the prediction.</p>
+        <form method="post" id="visualize-form" action="{% url 'visualize_prediction_view' result.id %}">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.feature.label_tag }}
+                    {{ form.feature }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.feature2.label_tag }}
+                    {{ form.feature2 }}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Generate Plot</button>
+        </form>
+    </div>
+</div>
+
+{% if plot_data %}
+<div class="card mt-4">
+    <div class="card-body text-center">
+        <h5 class="card-title">Prediction Plot</h5>
+        <img src="data:image/png;base64,{{ plot_data }}" class="img-fluid" alt="Prediction Plot">
+    </div>
+</div>
+{% endif %}

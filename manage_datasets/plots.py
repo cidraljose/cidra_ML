@@ -69,11 +69,10 @@ def create_histogram(df, column):
 def create_normalized_pdf_plot(df, numerical_cols):
     """
     Generates a single plot with PDF/KDE for all numerical columns.
-    Each column's values are scaled to a [0, 1] range for comparison, using MinMax scaler.
+    Each column's values are scaled using MinMax Scaler.
     """
     fig, ax = plt.subplots(figsize=(12, 7))
-    # Generate a list of colors from the color-blind friendly "viridis" colormap
-    colors = plt.cm.viridis(np.linspace(0, 1, len(numerical_cols)))
+    colors = plt.cm.get_cmap("viridis")(np.linspace(0, 1, len(numerical_cols)))
 
     for i, col in enumerate(numerical_cols):
         data = df[col]
