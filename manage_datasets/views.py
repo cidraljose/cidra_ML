@@ -54,7 +54,7 @@ def manage_datasets(request):
         os.makedirs(settings.DATASETS_DIR)
 
     # List datasets and handle upload form
-    datasets = Dataset.objects.all().order_by("-date")
+    datasets = Dataset.objects.exclude(name="--manual-data--").order_by("-date")
     upload_form = UploadCSVForm()
     split_form = SplitDatasetForm()
     merge_form = MergeDatasetsForm()

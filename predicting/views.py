@@ -104,20 +104,19 @@ def predicting(request):
 
                 prediction_filename = f"manual_prediction_{ml_model.id}.csv"
 
-                # Get column info for the new dataset record
-                columns_info = {
-                    col: str(dtype) for col, dtype in input_df.dtypes.items()
-                }
-
-                manual_dataset, _ = Dataset.objects.get_or_create(
-                    name=f"Manual Prediction ({len(manual_data_rows)} rows)",
+                # Get or create a single placeholder dataset for all manual predictions.
+                # This dataset will be excluded from the main list view.
+                manual_placeholder_dataset, _ = Dataset.objects.get_or_create(
+                    name="--manual-data--",
                     defaults={
-                        "description": "Auto-generated for a manual prediction.",
-                        "columns": columns_info,
+                        "description": "A placeholder for results from manual predictions.",
+                        "columns": {"info": "placeholder"},
                     },
                 )
 
-                result = PredictionResult(model=ml_model, dataset=manual_dataset)
+                result = PredictionResult(
+                    model=ml_model, dataset=manual_placeholder_dataset
+                )
                 result.prediction_file.save(prediction_filename, csv_content, save=True)
 
                 messages.success(

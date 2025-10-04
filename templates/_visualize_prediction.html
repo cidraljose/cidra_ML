@@ -1,6 +1,11 @@
 <p>
     <strong>Model:</strong> {{ result.model.name }}<br>
-    <strong>Input:</strong> {{ result.dataset.name }}
+    <strong>Input:</strong> 
+    {% if result.dataset and result.dataset.name == '--manual-data--' %}
+        Manual Entry
+    {% else %}
+        {{ result.dataset.name|default:"Manual Entry" }}
+    {% endif %}
 </p>
 
 {% if messages %}
