@@ -1,79 +1,72 @@
-"""
-Forms for manage_datasets app
-"""
-
 from django import forms
 
 from .models import Dataset
 
 
 class UploadCSVForm(forms.Form):
-    """
-    Form for uploading CSV datasets.
-    """
+    """Form for uploading a new CSV dataset."""
 
-    file = forms.FileField(label="CSV File")
-    name = forms.CharField(label="Dataset Name", max_length=64)
-    separator = forms.ChoiceField(
-        choices=[
-            (",", "Comma ( , )"),
-            (";", "Semicolon ( ; )"),
-            ("|", "Pipe ( | )"),
-            ("\\t", "Tab ( \\t )"),
-        ],
-        label="Separator",
-    )
-    encoding = forms.ChoiceField(
-        choices=[
-            ("utf-8", "UTF-8"),
-            ("latin-1", "Latin-1"),
-            ("iso-8859-1", "ISO-8859-1"),
-            ("cp1252", "CP1252"),
-        ],
-        label="Encoding",
-        initial="utf-8",
+    name = forms.CharField(
+        max_length=100, widget=forms.TextInput(attrs={"class": "form-control"})
     )
     description = forms.CharField(
-        label="Description",
-        max_length=512,
-        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+    )
+    file = forms.FileField(widget=forms.FileInput(attrs={"class": "form-control"}))
+    encoding = forms.ChoiceField(
+        choices=[("utf-8", "UTF-8"), ("latin-1", "Latin-1")],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    separator = forms.ChoiceField(
+        choices=[(",", "Comma (,)"), (";", "Semicolon (;)"), ("\\t", "Tab")],
+        widget=forms.Select(attrs={"class": "form-select"}),
     )
 
 
 class SplitDatasetForm(forms.Form):
-    """
-    Form for splitting a dataset into training and testing sets.
-    """
+    """Form for splitting a dataset."""
 
     dataset = forms.ModelChoiceField(
-        queryset=Dataset.objects.all().order_by("-date"),
-        label="Select Dataset to Split",
+        queryset=Dataset.objects.none(),
         widget=forms.Select(attrs={"class": "form-select"}),
+        label="Select Dataset to Split",
     )
     train_split_ratio = forms.IntegerField(
         min_value=1,
         max_value=99,
-        initial=80,
-        label="Training Set Ratio (%)",
-        help_text="The percentage of data for the training set. The rest will be for the test set.",
+        initial=70,
         widget=forms.NumberInput(attrs={"class": "form-control"}),
+        label="Training Set Ratio (%)",
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["dataset"].queryset = Dataset.objects.filter(
+                uploaded_by=user
+            ).exclude(name="--manual-data--")
 
 
 class MergeDatasetsForm(forms.Form):
-    """
-    Form for merging multiple datasets.
-    """
+    """Form for merging multiple datasets."""
 
     datasets = forms.ModelMultipleChoiceField(
-        queryset=Dataset.objects.all().order_by("-date"),
+        queryset=Dataset.objects.none(),
+        widget=forms.SelectMultiple(attrs={"class": "form-select", "size": "8"}),
         label="Select Datasets to Merge",
-        widget=forms.SelectMultiple(attrs={"class": "form-select", "size": "5"}),
-        help_text="Select two or more datasets. They will be appended to each other (vertical merge).",
     )
     new_dataset_name = forms.CharField(
-        label="New Dataset Name",
         max_length=100,
         widget=forms.TextInput(attrs={"class": "form-control"}),
+        label="Name for Merged Dataset",
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["datasets"].queryset = Dataset.objects.filter(
+                uploaded_by=user
+            ).exclude(name="--manual-data--")

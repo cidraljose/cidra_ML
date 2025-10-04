@@ -7,6 +7,7 @@ import uuid
 
 import pandas as pd
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -44,20 +45,24 @@ def _create_dataset_instance(name, description, df, user):
     return new_dataset
 
 
+@login_required
 def manage_datasets(request):
     """
     Access and manage datasets.
     """
 
-    # Assume settings.DATASETS_DIR is defined
     if not os.path.exists(settings.DATASETS_DIR):
         os.makedirs(settings.DATASETS_DIR)
 
     # List datasets and handle upload form
-    datasets = Dataset.objects.exclude(name="--manual-data--").order_by("-date")
+    datasets = (
+        Dataset.objects.filter(uploaded_by=request.user)
+        .exclude(name="--manual-data--")
+        .order_by("-date")
+    )
     upload_form = UploadCSVForm()
-    split_form = SplitDatasetForm()
-    merge_form = MergeDatasetsForm()
+    split_form = SplitDatasetForm(user=request.user)
+    merge_form = MergeDatasetsForm(user=request.user)
 
     if request.method == "POST":
         if "upload_csv" in request.POST:
@@ -96,7 +101,7 @@ def manage_datasets(request):
 
         elif "split_dataset" in request.POST:
             # --- Handle Dataset Split ---
-            split_form = SplitDatasetForm(request.POST)
+            split_form = SplitDatasetForm(request.POST, user=request.user)
             if split_form.is_valid():
                 original_dataset = split_form.cleaned_data["dataset"]
                 train_ratio = split_form.cleaned_data["train_split_ratio"] / 100.0
@@ -129,7 +134,7 @@ def manage_datasets(request):
                     split_form.add_error(None, f"Error processing dataset: {e}")
 
         elif "merge_datasets" in request.POST:
-            merge_form = MergeDatasetsForm(request.POST)
+            merge_form = MergeDatasetsForm(request.POST, user=request.user)
             if merge_form.is_valid():
                 selected_datasets = merge_form.cleaned_data["datasets"]
                 new_name = merge_form.cleaned_data["new_dataset_name"]
@@ -184,12 +189,13 @@ def manage_datasets(request):
     )
 
 
+@login_required
 def delete_dataset(request, dataset_id):
     """
     Delete a dataset by its ID.
     """
     try:
-        dataset = Dataset.objects.get(id=dataset_id)
+        dataset = Dataset.objects.get(id=dataset_id, uploaded_by=request.user)
         if dataset.file:
             if os.path.exists(dataset.file.path):
                 os.remove(dataset.file.path)
@@ -200,12 +206,13 @@ def delete_dataset(request, dataset_id):
     return redirect("manage_datasets_view")
 
 
+@login_required
 def download_dataset(request, dataset_id):
     """
     Download a dataset by its ID.
     """
     try:
-        dataset = Dataset.objects.get(id=dataset_id)
+        dataset = Dataset.objects.get(id=dataset_id, uploaded_by=request.user)
 
         if dataset.file:
             if os.path.exists(dataset.file.path):
@@ -223,6 +230,7 @@ def download_dataset(request, dataset_id):
     return redirect("manage_datasets_view")
 
 
+@login_required
 def visualize_dataset(request, dataset_id):
     """
     Visualize a dataset by its ID.
@@ -239,7 +247,7 @@ def visualize_dataset(request, dataset_id):
     """
     # Assure dataset exists
     try:
-        dataset_obj = Dataset.objects.get(pk=dataset_id)
+        dataset_obj = Dataset.objects.get(pk=dataset_id, uploaded_by=request.user)
     except Dataset.DoesNotExist:
         return redirect("manage_datasets_view")
 
@@ -309,6 +317,7 @@ def visualize_dataset(request, dataset_id):
     return render(request, "_visualize_dataset_partial.html", context)
 
 
+@login_required
 @require_POST
 def get_multiple_dataset_columns(request):
     """
@@ -320,7 +329,7 @@ def get_multiple_dataset_columns(request):
         if not dataset_ids:
             return JsonResponse({"error": "No dataset IDs provided"}, status=400)
 
-        datasets = Dataset.objects.filter(id__in=dataset_ids)
+        datasets = Dataset.objects.filter(id__in=dataset_ids, uploaded_by=request.user)
         columns_data = {}
         for ds in datasets:
             columns_data[ds.id] = {

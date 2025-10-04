@@ -12,20 +12,44 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'home_view' %}">Home 🍋</a>
-        <div class="collapse navbar-collapse">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item"><a class="nav-link" href="{% url 'manage_datasets_view' %}">Datasets 🎲</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'manage_MLmodels_view' %}">Models 🤖</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'testing_view' %}">Testing 🧪</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'predicting_view' %}">Predicting 🔮</a></li>
-            {% comment %} <li class="nav-item"><a class="nav-link" href="#">History 📰</a></li> {% endcomment %}
-          </ul>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            {% if user.is_authenticated %}
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="{% url 'manage_datasets_view' %}">Datasets 🎲</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'manage_MLmodels_view' %}">Models 🤖</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'testing_view' %}">Testing 🧪</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'predicting_view' %}">Predicting 🔮</a></li>
+            </ul>
+            {% endif %}
+            <ul class="navbar-nav ms-auto">
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Hello, {{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+            </ul>
         </div>
       </div>
     </nav>
 
     <!-- Main content -->
     <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
         {% block content %}{% endblock %}
     </div>
 

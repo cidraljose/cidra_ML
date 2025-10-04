@@ -1,4 +1,3 @@
-import pandas as pd
 from django import forms
 
 from manage_datasets.models import Dataset
@@ -6,42 +5,26 @@ from manage_MLmodels.models import MLModel
 
 
 class TestingForm(forms.Form):
-    # Field to select a trained model
+    """Form for selecting a model and a dataset for testing."""
+
     model = forms.ModelChoiceField(
-        queryset=MLModel.objects.all(),
-        label="Select Model to Test",
-        empty_label="--",
+        queryset=MLModel.objects.none(),
         widget=forms.Select(attrs={"class": "form-select"}),
+        label="Select a Trained Model to Evaluate",
     )
-    # Field to select the dataset for testing
     dataset = forms.ModelChoiceField(
-        queryset=Dataset.objects.all(),
-        label="Select Test Dataset",
-        empty_label="--",
+        queryset=Dataset.objects.none(),
         widget=forms.Select(attrs={"class": "form-select"}),
+        label="Select a Dataset for Testing",
     )
 
-    def clean(self):
-        cleaned_data = super().clean()
-        model = cleaned_data.get("model")
-        dataset = cleaned_data.get("dataset")
-
-        if model and dataset:
-            target_column = model.target
-            if not target_column:
-                raise forms.ValidationError(
-                    "The selected model does not have a target column defined."
-                )
-
-            try:
-                # Read only the header to check for the column
-                df_header = pd.read_csv(dataset.file.path, nrows=0)
-                if target_column not in df_header.columns:
-                    raise forms.ValidationError(
-                        f"The selected dataset '{dataset.name}' does not contain the required target column ('{target_column}') for the model '{model.name}'."
-                    )
-            except Exception as e:
-                raise forms.ValidationError(
-                    f"Could not read the dataset file. Error: {e}"
-                )
-        return cleaned_data
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["model"].queryset = MLModel.objects.filter(
+                uploaded_by=user, status="COMPLETED"
+            )
+            self.fields["dataset"].queryset = Dataset.objects.filter(
+                uploaded_by=user
+            ).exclude(name="--manual-data--")

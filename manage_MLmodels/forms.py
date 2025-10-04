@@ -16,11 +16,19 @@ class UploadMLModelForm(forms.Form):
     target = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     file = forms.FileField(widget=forms.FileInput(attrs={"class": "form-control"}))
     related_dataset = forms.ModelChoiceField(
-        queryset=Dataset.objects.all().order_by("name"),
+        queryset=Dataset.objects.none(),
         required=False,
         empty_label="Select a related dataset (optional)",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["related_dataset"].queryset = Dataset.objects.filter(
+                uploaded_by=user
+            ).order_by("name")
 
 
 class TrainMLModelForm(forms.Form):
@@ -35,7 +43,7 @@ class TrainMLModelForm(forms.Form):
 
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     dataset = forms.ModelChoiceField(
-        queryset=Dataset.objects.all().order_by("name"),
+        queryset=Dataset.objects.none(),
         empty_label="Select a dataset to train on",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
@@ -69,3 +77,11 @@ class TrainMLModelForm(forms.Form):
         initial="medium_quality",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["dataset"].queryset = Dataset.objects.filter(
+                uploaded_by=user
+            ).order_by("name")

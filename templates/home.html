@@ -1,14 +1,68 @@
 {% extends 'base.html' %}
 {% block title %}Home{% endblock %}
 {% block content %}
-<div class="text-center">
-    <h2 class="mb-4">Welcome to Cidra-ML 🍋</h2>
-    <p>
-        This project aims to apply Artificial Intelligence to geotechnical data, using regression models
-        previously trained with AutoGluon.
-    </p>
-    <p>
-        Use the menu above to navigate between pages.
-    </p>
+<div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+        <h2 class="mb-4">Welcome to Cidra-ML 🍋</h2>
+        <p class="lead">
+            Cidra-ML is an easy-to-use tool designed to simplify the creation of powerful regression models, 
+            leveraging the capabilities of AutoML with AutoGluon.
+            Whether you're a seasoned data scientist or new to machine learning, Cidra-ML provides
+            an intuitive platform to manage your datasets, train models, and gain insights
+            from your data with minimal effort.
+        </p>
+        </p>
+        {% if user.is_authenticated %}
+        <div class="mt-4">
+            <p class="lead">Welcome back, {{ user.username }}! Use the navigation bar to proceed.</p>
+            <a href="{% url 'logout' %}" class="btn btn-secondary btn-lg">Logout</a>
+        </div>
+        {% endif %}
+    </div>
+    {% if not user.is_authenticated %}
+    <div class="col-lg-6 mt-4">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="auth-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-panel" type="button" role="tab" aria-controls="login-panel" aria-selected="true">Login</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-panel" type="button" role="tab" aria-controls="register-panel" aria-selected="false">Register</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="auth-tabs-content">
+                    <!-- Login Form -->
+                    <div class="tab-pane fade show active" id="login-panel" role="tabpanel" aria-labelledby="login-tab">
+                        <h5 class="card-title">Login to Your Account</h5>
+                        <form method="post" action="{% url 'login' %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="id_username_login" class="form-label">Username</label>
+                                {{ login_form.username }}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_password_login" class="form-label">Password</label>
+                                {{ login_form.password }}
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Login</button>
+                        </form>
+                    </div>
+                    <!-- Registration Form -->
+                    <div class="tab-pane fade" id="register-panel" role="tabpanel" aria-labelledby="register-tab">
+                        <h5 class="card-title">Create a New Account</h5>
+                        <form method="post" action="{% url 'register' %}">
+                            {% csrf_token %}
+                            {{ register_form.as_p }}
+                            <button type="submit" class="btn btn-success w-100">Register</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

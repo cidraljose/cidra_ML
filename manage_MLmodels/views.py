@@ -6,6 +6,7 @@ import zipfile
 
 import pandas as pd
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
@@ -18,6 +19,7 @@ from .models import MLModel
 from .tasks import train_autogluon_model
 
 
+@login_required
 @require_GET
 def get_dataset_columns(request, dataset_id):
     """
@@ -25,7 +27,8 @@ def get_dataset_columns(request, dataset_id):
     Handles different formats of dataset.columns (dict, list, etc.).
     """
     try:
-        dataset = Dataset.objects.get(pk=dataset_id)
+        # Ensure user can only access their own datasets
+        dataset = Dataset.objects.get(pk=dataset_id, uploaded_by=request.user)
     except Dataset.DoesNotExist:
         return JsonResponse({"columns": [], "error": "Dataset not found"}, status=404)
 
@@ -48,6 +51,7 @@ def get_dataset_columns(request, dataset_id):
     return JsonResponse({"columns": columns})
 
 
+@login_required
 def manage_MLmodels(request):
     upload_form = None
     train_form = None
@@ -59,7 +63,10 @@ def manage_MLmodels(request):
         # Upload
         if "upload_model" in request.POST:
             upload_form = UploadMLModelForm(
-                request.POST, request.FILES, prefix="upload"
+                request.POST,
+                request.FILES,
+                prefix="upload",
+                user=request.user,
             )
             if upload_form.is_valid():
                 uploaded_file = upload_form.cleaned_data["file"]
@@ -104,6 +111,7 @@ def manage_MLmodels(request):
                                     related_dataset=upload_form.cleaned_data[
                                         "related_dataset"
                                     ],
+                                    uploaded_by=request.user,
                                     status="COMPLETED",
                                 )
                             except Exception as e:
@@ -122,13 +130,17 @@ def manage_MLmodels(request):
 
         # Train
         elif "train_model" in request.POST:
-            train_form = TrainMLModelForm(request.POST, prefix="train")
+            train_form = TrainMLModelForm(
+                request.POST, prefix="train", user=request.user
+            )
             dataset_id = request.POST.get("train-dataset")
 
             # Populate choices
             if dataset_id:
                 try:
-                    dataset = Dataset.objects.get(pk=dataset_id)
+                    dataset = Dataset.objects.get(
+                        pk=dataset_id, uploaded_by=request.user
+                    )
                     columns = (
                         list(dataset.columns.keys())
                         if isinstance(dataset.columns, dict)
@@ -154,7 +166,7 @@ def manage_MLmodels(request):
                     name=data["name"],
                     related_dataset=data["dataset"],
                     target=data["target"],
-                    uploaded_by=None,  # No user auth for now
+                    uploaded_by=request.user,
                     status="TRAINING",
                 )
                 train_autogluon_model.delay(
@@ -168,14 +180,14 @@ def manage_MLmodels(request):
                 return redirect("manage_MLmodels_view")
 
     # Invalid GET or POST -> prepare forms
-    upload_form = upload_form or UploadMLModelForm(prefix="upload")
+    upload_form = upload_form or UploadMLModelForm(prefix="upload", user=request.user)
 
     if train_form is None:
         # If ?train-dataset=ID came in GET, pre-populate choices
         dataset_id = request.GET.get("train-dataset")
         if dataset_id:
             try:
-                dataset = Dataset.objects.get(pk=dataset_id)
+                dataset = Dataset.objects.get(pk=dataset_id, uploaded_by=request.user)
                 columns = (
                     list(dataset.columns.keys())
                     if isinstance(dataset.columns, dict)
@@ -183,19 +195,20 @@ def manage_MLmodels(request):
                 )
                 choices = [(c, c) for c in columns]
                 train_form = TrainMLModelForm(
-                    prefix="train", initial={"dataset": dataset}
+                    prefix="train", initial={"dataset": dataset}, user=request.user
                 )
                 train_form.fields["target"].choices = choices
                 train_form.fields["features"].choices = choices
             except Dataset.DoesNotExist:
-                train_form = TrainMLModelForm(prefix="train")
+                train_form = TrainMLModelForm(prefix="train", user=request.user)
         else:
-            train_form = TrainMLModelForm(prefix="train")
+            train_form = TrainMLModelForm(prefix="train", user=request.user)
 
     # Prepare JSON-friendly selected_features for use in the JS template
     selected_features_json = json.dumps(selected_features)
 
-    models = MLModel.objects.all().order_by("-date")
+    # Filter models by the logged-in user
+    models = MLModel.objects.filter(uploaded_by=request.user).order_by("-date")
     context = {
         "models": models,
         "upload_form": upload_form,
@@ -206,11 +219,12 @@ def manage_MLmodels(request):
     return render(request, "manage_MLmodels.html", context)
 
 
+@login_required
 def delete_MLmodel(request, MLmodel_id):
     """
     Delete an ML model instance and its associated file.
     """
-    model_obj = get_object_or_404(MLModel, id=MLmodel_id)
+    model_obj = get_object_or_404(MLModel, id=MLmodel_id, uploaded_by=request.user)
 
     # If the model has an associated directory, remove it.
     if model_obj.file and model_obj.file.path and os.path.exists(model_obj.file.path):
@@ -221,11 +235,12 @@ def delete_MLmodel(request, MLmodel_id):
     return redirect("manage_MLmodels_view")
 
 
+@login_required
 def download_MLmodel(request, MLmodel_id):
     """
     Allow downloading the file associated with an ML model.
     """
-    model_obj = get_object_or_404(MLModel, id=MLmodel_id)
+    model_obj = get_object_or_404(MLModel, id=MLmodel_id, uploaded_by=request.user)
     if model_obj.file and os.path.exists(model_obj.file.path):
         base_dir = model_obj.file.path
         zip_root = base_dir
@@ -262,12 +277,14 @@ def download_MLmodel(request, MLmodel_id):
     raise Http404("File does not exist or was not found.")
 
 
+@login_required
 def visualize_MLmodel(request, MLmodel_id):
     """
     Display details and cached evaluation results for an ML model.
     """
-    model_obj = get_object_or_404(MLModel, id=MLmodel_id)
+    model_obj = get_object_or_404(MLModel, id=MLmodel_id, uploaded_by=request.user)
     # Get all test results to be listed in a dropdown
+    # Assuming TestResult is linked to MLModel which is now user-specific
     test_results = model_obj.test_results.order_by("-test_date").all()
 
     context = {
@@ -277,13 +294,17 @@ def visualize_MLmodel(request, MLmodel_id):
     return render(request, "_visualize_MLmodel_details_partial.html", context)
 
 
+@login_required
 @require_GET
 def get_leaderboard_data(request, result_id):
     """
     Returns leaderboard data for a specific test result as JSON.
     """
 
-    test_result = get_object_or_404(TestResult, pk=result_id)
+    # Ensure the user owns the model related to the test result
+    test_result = get_object_or_404(
+        TestResult, pk=result_id, model__uploaded_by=request.user
+    )
     leaderboard_data = None
 
     if test_result and test_result.leaderboard_data:
@@ -303,19 +324,21 @@ def get_leaderboard_data(request, result_id):
     return JsonResponse({"leaderboard_data": leaderboard_data})
 
 
+@login_required
 @require_GET
 def get_MLmodel_row_partial(request, MLmodel_id):
     """
     Returns the HTML for a single model table row to enable live updates.
     """
-    model = get_object_or_404(MLModel, id=MLmodel_id)
+    model = get_object_or_404(MLModel, id=MLmodel_id, uploaded_by=request.user)
     return render(request, "_MLmodel_row_partial.html", {"model": model})
 
 
+@login_required
 @require_GET
 def get_model_details(request, model_id):
     """
     Returns JSON with the model's target column.
     """
-    model = get_object_or_404(MLModel, pk=model_id)
+    model = get_object_or_404(MLModel, pk=model_id, uploaded_by=request.user)
     return JsonResponse({"target": model.target, "features": model.features or []})

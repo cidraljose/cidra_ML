@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "home",
+    "users",
     "manage_MLmodels",
     "manage_datasets",
     "django_celery_results",
@@ -151,3 +151,8 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
+# Authentication settings
+LOGIN_REDIRECT_URL = "manage_datasets_view"
+LOGOUT_REDIRECT_URL = "home_view"
+LOGIN_URL = "home_view"

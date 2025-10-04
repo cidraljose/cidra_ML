@@ -3,6 +3,7 @@ import io
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -13,14 +14,15 @@ from .models import TestResult
 from .plots import create_predicted_vs_real_plot
 
 
+@login_required
 def testing(request):
-    form = TestingForm()
+    form = TestingForm(user=request.user)
     selected_target = ""
     selected_model_id = ""
     selected_features_json = "[]"
 
     if request.method == "POST":
-        form = TestingForm(request.POST)
+        form = TestingForm(request.POST, user=request.user)
         if form.is_valid():
             ml_model = form.cleaned_data["model"]
             dataset = form.cleaned_data["dataset"]
@@ -65,7 +67,9 @@ def testing(request):
             selected_model_id = request.POST.get("model", "")
             messages.error(request, "Please correct the errors below.")
 
-    history = TestResult.objects.select_related("model", "dataset").all()
+    history = TestResult.objects.filter(model__uploaded_by=request.user).select_related(
+        "model", "dataset"
+    )
 
     context = {
         "form": form,
@@ -77,12 +81,15 @@ def testing(request):
     return render(request, "testing.html", context)
 
 
+@login_required
 @require_GET
 def get_test_result_details(request, result_id):
     """
     Returns the evaluation metrics and plot for a specific test result.
     """
-    result = get_object_or_404(TestResult, pk=result_id)
+    result = get_object_or_404(
+        TestResult, pk=result_id, model__uploaded_by=request.user
+    )
     leaderboard_payload = None
     if result.leaderboard_data and "columns" in result.leaderboard_data:
         leaderboard_payload = {
@@ -102,11 +109,14 @@ def get_test_result_details(request, result_id):
     )
 
 
+@login_required
 def download_test_with_predictions(request, result_id):
     """
     Downloads the test dataset with an added 'y_predicted' column.
     """
-    result = get_object_or_404(TestResult, pk=result_id)
+    result = get_object_or_404(
+        TestResult, pk=result_id, model__uploaded_by=request.user
+    )
 
     if not result.predictions:
         raise Http404("Predictions are not available for this test result.")
@@ -133,12 +143,15 @@ def download_test_with_predictions(request, result_id):
         raise Http404(f"An error occurred while preparing the download: {e}")
 
 
+@login_required
 def delete_test_result(request, result_id):
     """
     Deletes a test result instance.
     """
     if request.method == "POST":
-        result = get_object_or_404(TestResult, pk=result_id)
+        result = get_object_or_404(
+            TestResult, pk=result_id, model__uploaded_by=request.user
+        )
         model = result.model
 
         # Delete the test result object

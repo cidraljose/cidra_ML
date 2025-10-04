@@ -8,6 +8,7 @@ import seaborn as sns
 from autogluon.tabular import TabularPredictor
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -21,10 +22,13 @@ from .forms import FeatureSelectionForm, ModelSelectionForm, PredictionForm
 from .models import PredictionResult
 
 
+@login_required
 def predicting(request):
     if request.method == "POST":
         if "submit_dataset" in request.POST:
-            dataset_form = PredictionForm(request.POST, prefix="dataset")
+            dataset_form = PredictionForm(
+                request.POST, prefix="dataset", user=request.user
+            )
             if dataset_form.is_valid():
                 try:
                     ml_model = dataset_form.cleaned_data["model"]
@@ -71,7 +75,9 @@ def predicting(request):
         elif "submit_manual" in request.POST:
             try:
                 model_id = request.POST.get("manual-model")
-                ml_model = get_object_or_404(MLModel, pk=model_id)
+                ml_model = get_object_or_404(
+                    MLModel, pk=model_id, uploaded_by=request.user
+                )
 
                 # Process multiple rows from POST data
                 manual_data_rows = []
@@ -110,6 +116,7 @@ def predicting(request):
                     name="--manual-data--",
                     defaults={
                         "description": "A placeholder for results from manual predictions.",
+                        "uploaded_by": request.user,
                         "columns": {"info": "placeholder"},
                     },
                 )
@@ -129,15 +136,17 @@ def predicting(request):
                 messages.error(request, f"An error occurred during prediction: {e}")
 
     # This block runs for GET requests or if a POST fails validation
-    dataset_form = PredictionForm(prefix="dataset")
-    model_selection_form = ModelSelectionForm(prefix="manual")
+    dataset_form = PredictionForm(prefix="dataset", user=request.user)
+    model_selection_form = ModelSelectionForm(prefix="manual", user=request.user)
     if request.method == "POST" and "submit_dataset" in request.POST:
         dataset_form = PredictionForm(
-            request.POST, prefix="dataset"
+            request.POST, prefix="dataset", user=request.user
         )  # Re-bind with errors
 
-    history = PredictionResult.objects.select_related("model", "dataset").order_by(
-        "-prediction_date"
+    history = (
+        PredictionResult.objects.filter(model__uploaded_by=request.user)
+        .select_related("model", "dataset")
+        .order_by("-prediction_date")
     )
 
     context = {
@@ -148,11 +157,14 @@ def predicting(request):
     return render(request, "predicting.html", context)
 
 
+@login_required
 def visualize_prediction(request, result_id):
     """
     Generates and displays a plot of a selected feature vs. the prediction.
     """
-    result = get_object_or_404(PredictionResult, pk=result_id)
+    result = get_object_or_404(
+        PredictionResult, pk=result_id, model__uploaded_by=request.user
+    )
     ml_model = result.model
     plot_data = None
 
@@ -227,12 +239,13 @@ def visualize_prediction(request, result_id):
     return render(request, "_visualize_prediction.html", context)
 
 
+@login_required
 @require_GET
 def get_model_features(request, model_id):
     """
     Returns the features of a given model as JSON.
     """
-    model = get_object_or_404(MLModel, pk=model_id)
+    model = get_object_or_404(MLModel, pk=model_id, uploaded_by=request.user)
     try:
         features = model.features
         return JsonResponse({"features": features})
@@ -240,11 +253,14 @@ def get_model_features(request, model_id):
         return JsonResponse({"error": f"An error occurred: {str(e)}"}, status=500)
 
 
+@login_required
 def download_prediction_file(request, result_id):
     """
     Downloads the CSV file containing the original data plus the predictions.
     """
-    result = get_object_or_404(PredictionResult, pk=result_id)
+    result = get_object_or_404(
+        PredictionResult, pk=result_id, model__uploaded_by=request.user
+    )
     if not result.prediction_file:
         raise Http404("Prediction file not found.")
 
@@ -255,12 +271,15 @@ def download_prediction_file(request, result_id):
     return response
 
 
+@login_required
 def delete_prediction_result(request, result_id):
     """
     Deletes a prediction result instance and its associated file.
     """
     if request.method == "POST":
-        result = get_object_or_404(PredictionResult, pk=result_id)
+        result = get_object_or_404(
+            PredictionResult, pk=result_id, model__uploaded_by=request.user
+        )
         result.prediction_file.delete(save=False)  # Delete file from storage
         result.delete()
         messages.success(request, "The prediction result has been deleted.")
