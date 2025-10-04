@@ -42,12 +42,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "home",
-    "about",
     "manage_MLmodels",
     "manage_datasets",
     "django_celery_results",
     "testing",
-    # "predicting",
+    "predicting",
 ]
 
 MIDDLEWARE = [

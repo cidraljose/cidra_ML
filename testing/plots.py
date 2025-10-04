@@ -35,7 +35,7 @@ def create_predicted_vs_real_plot(y_true, y_pred):
         y1=y_true.max(),
         line=dict(color="Red", dash="dash"),
     )
-    fig.update_layout(title="Predicted vs. Real Values", showlegend=False)
+    fig.update_layout(showlegend=False)
 
     buffer = BytesIO()
     pio.write_image(fig, buffer, format="png")

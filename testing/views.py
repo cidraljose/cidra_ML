@@ -114,8 +114,9 @@ def download_test_with_predictions(request, result_id):
     try:
         # Read the original dataset
         df = pd.read_csv(result.dataset.file.path)
+
         # Add the predictions as a new column
-        df["y_predicted"] = result.predictions
+        df[f"{result.model.target}_predicted"] = result.predictions
 
         # Create an in-memory CSV file
         output = io.StringIO()

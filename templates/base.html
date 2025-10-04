@@ -17,8 +17,8 @@
             <li class="nav-item"><a class="nav-link" href="{% url 'manage_datasets_view' %}">Datasets 🎲</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'manage_MLmodels_view' %}">Models 🤖</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'testing_view' %}">Testing 🧪</a></li>
-            {% comment %} <li class="nav-item"><a class="nav-link" href="{% url 'testing_view' %}">Predicting 🔮</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">History 📰</a></li> {% endcomment %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'predicting_view' %}">Predicting 🔮</a></li>
+            {% comment %} <li class="nav-item"><a class="nav-link" href="#">History 📰</a></li> {% endcomment %}
           </ul>
         </div>
       </div>
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         targetSelect.innerHTML = '';
         const emptyOp = document.createElement('option');
         emptyOp.value = '';
-        emptyOp.textContent = '---------';
+        emptyOp.textContent = '--';
         targetSelect.appendChild(emptyOp);
 
         columns.forEach(col => {

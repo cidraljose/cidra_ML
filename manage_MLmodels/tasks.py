@@ -43,6 +43,12 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         dataset_instance = Dataset.objects.get(id=dataset_id)
         train_data = pd.read_csv(dataset_instance.file.path)
 
+        # Ensure only selected features and the target are used for training
+        if features:
+            features = [f for f in features if f != target]
+            columns_to_use = features + [target]
+            train_data = train_data[columns_to_use]
+
         model_slug = slugify(model_instance.name)
         model_name = f"{model_slug}_{model_instance.id}"
         model_path = os.path.join(settings.MEDIA_ROOT, "MLmodels", model_name)
