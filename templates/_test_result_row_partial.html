@@ -10,12 +10,9 @@
     <span class="badge bg-success">{{ result.get_status_display }}</span>
     {% elif result.status == 'FAILED' %}
     <span class="badge bg-danger">{{ result.get_status_display }}</span>
-    <button class="btn btn-xs btn-outline-danger py-0 px-1 ms-1" data-bs-toggle="modal" data-bs-target="#errorModal" data-error-trace="{{ result.evaluation_metrics.traceback|escape }}" title="View Error Details">
-        <small>Details</small>
     </button>
     {% endif %}
 </td>
-<td>{{ result.evaluation_metrics.accuracy|default:"N/A"|floatformat:4 }}</td>
 <td>
     <button class="btn btn-sm btn-info view-results-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#resultsModal" {% if result.status != 'COMPLETED' %}disabled{% endif %}>
         Visualize
