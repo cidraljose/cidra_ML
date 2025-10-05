@@ -1,9 +1,11 @@
+# celery -A cidra_ML worker -l info -P solo
 import io
 
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -11,7 +13,9 @@ from django.views.decorators.http import require_GET
 
 from .forms import TestingForm
 from .models import TestResult
-from .plots import create_predicted_vs_real_plot
+from .tasks import evaluate_model_task
+
+CELERY_WORKER_REDIRECT_STDOUTS = False
 
 
 @login_required
@@ -28,36 +32,20 @@ def testing(request):
             dataset = form.cleaned_data["dataset"]
 
             try:
-                test_data = pd.read_csv(dataset.file.path)
-                predictor = TabularPredictor.load(ml_model.file.path)
-
-                # Evaluate the model
-                evaluation_results = predictor.evaluate(test_data)
-
-                # Generate predictions for the plot
-                predictions = predictor.predict(test_data)
-                target_column = ml_model.target  # noqa: F841
-                real_values = test_data[target_column]
-                evaluation_plot = create_predicted_vs_real_plot(
-                    real_values, predictions
-                )
-
-                # Generate and save the leaderboard for the test data
-                leaderboard_df = predictor.leaderboard(test_data, silent=True)
-                leaderboard_df = leaderboard_df.reset_index()
-
-                TestResult.objects.create(
+                # Create a TestResult instance with PENDING status
+                test_result = TestResult.objects.create(
                     model=ml_model,
                     dataset=dataset,
-                    evaluation_metrics=evaluation_results,
-                    predictions=predictions.tolist(),
-                    leaderboard_data=leaderboard_df.to_dict("split"),
-                    plot=evaluation_plot,
+                    status=TestResult.STATUS_PENDING,
                 )
+                # Dispatch the background task only after the transaction is committed
+                transaction.on_commit(lambda: evaluate_model_task.delay(test_result.id))
+
                 messages.success(
                     request,
-                    f"Model '{ml_model.name}' evaluated successfully on '{dataset.name}'.",
+                    f"Evaluation of '{ml_model.name}' on '{dataset.name}' has started. Results will appear in the history.",
                 )
+                return redirect(reverse("testing_view") + "#history-panel")
 
             except Exception as e:
                 messages.error(request, f"An error occurred during evaluation: {e}")
@@ -166,3 +154,15 @@ def delete_test_result(request, result_id):
         # Redirect back to the testing page with a hash to open the history tab
         return redirect(reverse("testing_view") + "#history-panel")
     raise Http404()
+
+
+@login_required
+@require_GET
+def get_test_result_row_partial(request, result_id):
+    """
+    Returns the HTML for a single test result table row to enable live updates.
+    """
+    result = get_object_or_404(
+        TestResult, pk=result_id, model__uploaded_by=request.user
+    )
+    return render(request, "_test_result_row_partial.html", {"result": result})

@@ -10,12 +10,22 @@
     <div class="col-12">
         <h5>Model Details</h5>
         <ul class="list-group mb-4">
+            <li class="list-group-item"><strong>Description:</strong> {{ model.description|default:"N/A" }}</li>
             <li class="list-group-item"><strong>Status:</strong> {{ model.get_status_display }}</li>
             <li class="list-group-item"><strong>Target Variable:</strong> {{ model.target }}</li>
             <li class="list-group-item"><strong>Training Dataset:</strong> {{ model.related_dataset.name|default:"N/A" }}</li>
             <li class="list-group-item"><strong>Training Time:</strong> {{ model.formatted_training_duration|default:"N/A" }}</li>
             <li class="list-group-item"><strong>Created On:</strong> {{ model.date|date:"Y-m-d H:i" }}</li>
         </ul>
+
+        {% if model.features %}
+        <h5 class="mt-4">Features Used for Training ({{ model.features|length }})</h5>
+        <div class="list-group mb-4" style="max-height: 200px; overflow-y: auto;">
+            {% for feature in model.features %}
+                <div class="list-group-item py-1">{{ feature }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         {% if model.evaluation_plots.feature_importance %}
         <h5 class="mt-4"><i class="bi bi-diagram-3"></i> Feature Importance</h5>

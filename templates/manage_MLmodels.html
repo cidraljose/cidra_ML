@@ -26,6 +26,9 @@
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-6 mb-3">{{ train_form.name.label_tag }} {{ train_form.name }}</div>
+                        <div class="col-md-6 mb-3">{{ train_form.description.label_tag }} {{ train_form.description }}</div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-6 mb-3">{{ train_form.dataset.label_tag }} {{ train_form.dataset }}</div>
                     </div>
                     <div class="row">
@@ -65,7 +68,15 @@
                 <p class="card-text">Upload a model as a .zip file, typically from a previously trained AutoGluon `predictor.save()` artifact.</p>
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    {{ upload_form.as_p }}
+                    <div class="mb-3">{{ upload_form.name.label_tag }} {{ upload_form.name }}</div>
+                    <div class="mb-3">{{ upload_form.description.label_tag }} {{ upload_form.description }}</div>
+                    <div class="mb-3">{{ upload_form.target.label_tag }} {{ upload_form.target }}</div>
+                    <div class="mb-3">
+                        {{ upload_form.features.label_tag }} {{ upload_form.features }}
+                        <div class="form-text">{{ upload_form.features.help_text }}</div>
+                    </div>
+                    <div class="mb-3">{{ upload_form.related_dataset.label_tag }} {{ upload_form.related_dataset }}</div>
+                    <div class="mb-3">{{ upload_form.file.label_tag }} {{ upload_form.file }}</div>
                     <button type="submit" name="upload_model" class="btn btn-secondary">Upload Model</button>
                 </form>
             </div>
@@ -83,7 +94,6 @@
                             <th scope="col">Features</th>
                             <th scope="col">Target</th>
                             <th scope="col">Created on</th>
-                            <th scope="col">Training Time</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -94,7 +104,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center">No models found.</td>
+                            <td colspan="7" class="text-center">No models found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

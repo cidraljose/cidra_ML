@@ -6,6 +6,7 @@ from .views import (
     delete_test_result,
     download_test_with_predictions,
     get_test_result_details,
+    get_test_result_row_partial,
     testing,
 )
 
@@ -35,5 +36,10 @@ urlpatterns = [
         "testing/results/<int:result_id>/delete/",
         delete_test_result,
         name="delete_test_result_view",
+    ),
+    path(
+        "testing/results/<int:result_id>/row/",
+        get_test_result_row_partial,
+        name="get_test_result_row_partial_view",
     ),
 ]

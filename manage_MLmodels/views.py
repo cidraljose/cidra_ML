@@ -5,6 +5,7 @@ import tempfile
 import zipfile
 
 import pandas as pd
+from autogluon.tabular import TabularPredictor
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, JsonResponse
@@ -100,6 +101,25 @@ def manage_MLmodels(request):
                                         tmpdir, extracted_items[0]
                                     )
 
+                                # Attempt to auto-fill features
+                                auto_features = []
+                                try:
+                                    temp_predictor = TabularPredictor.load(source_dir)
+                                    auto_features = temp_predictor.features()
+                                except Exception:
+                                    pass  # Ignore if predictor can't be loaded
+
+                                # Use form features if provided, otherwise use auto-detected
+                                form_features_raw = upload_form.cleaned_data.get(
+                                    "features"
+                                )
+                                if form_features_raw:
+                                    features_list = [
+                                        f.strip() for f in form_features_raw.split(",")
+                                    ]
+                                else:
+                                    features_list = auto_features
+
                                 # Copy the contents to the final destination
                                 shutil.copytree(source_dir, final_model_dir)
 
@@ -107,6 +127,7 @@ def manage_MLmodels(request):
                                     name=model_name,
                                     description=upload_form.cleaned_data["description"],
                                     target=upload_form.cleaned_data["target"],
+                                    features=features_list,
                                     file=model_storage_path,
                                     related_dataset=upload_form.cleaned_data[
                                         "related_dataset"
@@ -164,6 +185,7 @@ def manage_MLmodels(request):
 
                 new_model = MLModel.objects.create(
                     name=data["name"],
+                    description=data["description"],
                     related_dataset=data["dataset"],
                     target=data["target"],
                     uploaded_by=request.user,
@@ -255,6 +277,20 @@ def download_MLmodel(request, MLmodel_id):
         # Create a zip file containing the entire directory
         zip_filename = f"{model_obj.name}.zip"
 
+        # Create model_info.txt content
+        info_content = (
+            f"Model Name: {model_obj.name}\n"
+            f"Description: {model_obj.description or 'N/A'}\n"
+            f"Target Variable: {model_obj.target}\n"
+        )
+        if model_obj.features:
+            features_str = ", ".join(model_obj.features)
+            info_content += f"Features: {features_str}\n"
+        else:
+            info_content += "Features: N/A\n"
+
+        info_content_bytes = info_content.encode("utf-8")
+
         # Create the zip in a temporary file to avoid conflicts
         tmp_zip_path = os.path.join(tempfile.gettempdir(), zip_filename)
 
@@ -263,6 +299,9 @@ def download_MLmodel(request, MLmodel_id):
                 for file in files:
                     file_path = os.path.join(root, file)
                     zipf.write(file_path, os.path.relpath(file_path, zip_root))
+
+            # Add the model_info.txt file to the zip
+            zipf.writestr("model_info.txt", info_content_bytes)
 
         # Read the zip file into memory
         with open(tmp_zip_path, "rb") as f:

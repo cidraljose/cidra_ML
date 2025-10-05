@@ -86,30 +86,15 @@
                             <th>Date</th>
                             <th>Model</th>
                             <th>Dataset</th>
+                            <th>Status</th>
                             <th>Accuracy</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for result in history %}
-                        <tr>
-                            <td>{{ result.test_date|date:"Y-m-d H:i" }}</td>
-                            <td>{{ result.model.name }}</td>
-                            <td>{{ result.dataset.name }}</td>
-                            <td>{{ result.evaluation_metrics.accuracy|default:"N/A"|floatformat:4 }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-results-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#resultsModal">
-                                    Visualize
-                                </button>
-                                <a href="{% url 'download_with_predictions_view' result.id %}" class="btn btn-sm btn-success" title="Download test data with predictions">
-                                    Download
-                                </a>
-                                <!-- Delete Form -->
-                                <form method="post" action="{% url 'delete_test_result_view' result.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this test result?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                </form>
-                            </td>
+                        <tr id="result-row-{{ result.id }}" data-status="{{ result.status }}">
+                            {% include "_test_result_row_partial.html" %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -299,6 +284,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- Error Modal Logic ---
+    const errorModal = document.getElementById('errorModal');
+    if (errorModal) {
+        errorModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const errorTrace = button.getAttribute('data-error-trace');
+            const errorContentEl = document.getElementById('error-trace-content');
+            errorContentEl.textContent = errorTrace || 'No error details available.';
+        });
+    }
+
     // --- Tab Management ---
     // On page load, check if there's a URL hash and activate the corresponding tab.
     const hash = window.location.hash;
@@ -308,6 +304,47 @@ document.addEventListener('DOMContentLoaded', function () {
             new bootstrap.Tab(tabToActivate).show();
         }
     }
+
+    // --- Live Status Polling for Test Results ---
+    const activePollers = new Map();
+    const pollingInterval = 5000; // 5 seconds
+
+    const pollStatus = async (resultId, rowElement) => {
+        const url = `{% url 'get_test_result_row_partial_view' 0 %}`.replace('0', resultId);
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            
+            const newRowHtml = await response.text();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = `<table><tbody><tr>${newRowHtml}</tr></tbody></table>`;
+            const newStatus = tempDiv.querySelector('tr').dataset.status;
+
+            // Replace the old row content with the new one.
+            rowElement.innerHTML = newRowHtml;
+            rowElement.dataset.status = newStatus; // Update the status attribute
+
+            // If the new status is final, stop polling.
+            if (newStatus === 'COMPLETED' || newStatus === 'FAILED') {
+                clearInterval(activePollers.get(resultId));
+                activePollers.delete(resultId);
+            }
+        } catch (error) {
+            console.error(`Failed to poll status for result ${resultId}:`, error);
+            clearInterval(activePollers.get(resultId)); // Stop on error
+            activePollers.delete(resultId);
+        }
+    };
+
+    // Find all rows that are currently pending or running and start polling them.
+    document.querySelectorAll('tr[data-status="PENDING"], tr[data-status="RUNNING"]').forEach(row => {
+        const resultId = row.id.split('-').pop();
+        if (resultId && !activePollers.has(resultId)) {
+            const intervalId = setInterval(() => pollStatus(resultId, row), pollingInterval);
+            activePollers.set(resultId, intervalId);
+        }
+    });
 });
 </script>
 {% endblock %}

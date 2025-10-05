@@ -1,0 +1,31 @@
+<td>{{ result.test_date|date:"Y-m-d H:i" }}</td>
+<td>{{ result.model.name }}</td>
+<td>{{ result.dataset.name }}</td>
+<td>
+    {% if result.status == 'PENDING' %}
+    <span class="badge bg-secondary">{{ result.get_status_display }}</span>
+    {% elif result.status == 'RUNNING' %}
+    <span class="badge bg-warning text-dark">{{ result.get_status_display }} <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+    {% elif result.status == 'COMPLETED' %}
+    <span class="badge bg-success">{{ result.get_status_display }}</span>
+    {% elif result.status == 'FAILED' %}
+    <span class="badge bg-danger">{{ result.get_status_display }}</span>
+    <button class="btn btn-xs btn-outline-danger py-0 px-1 ms-1" data-bs-toggle="modal" data-bs-target="#errorModal" data-error-trace="{{ result.evaluation_metrics.traceback|escape }}" title="View Error Details">
+        <small>Details</small>
+    </button>
+    {% endif %}
+</td>
+<td>{{ result.evaluation_metrics.accuracy|default:"N/A"|floatformat:4 }}</td>
+<td>
+    <button class="btn btn-sm btn-info view-results-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#resultsModal" {% if result.status != 'COMPLETED' %}disabled{% endif %}>
+        Visualize
+    </button>
+    <a href="{% url 'download_with_predictions_view' result.id %}" class="btn btn-sm btn-success" title="Download test data with predictions" {% if result.status != 'COMPLETED' %}disabled{% endif %}>
+        Download
+    </a>
+    <!-- Delete Form -->
+    <form method="post" action="{% url 'delete_test_result_view' result.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this test result?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-danger" title="Delete test result">Delete</button>
+    </form>
+</td>

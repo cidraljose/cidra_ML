@@ -14,6 +14,11 @@ class UploadMLModelForm(forms.Form):
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
     )
     target = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+    features = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        help_text="Comma-separated list of feature names. Will be auto-filled if found in the model.",
+    )
     file = forms.FileField(widget=forms.FileInput(attrs={"class": "form-control"}))
     related_dataset = forms.ModelChoiceField(
         queryset=Dataset.objects.none(),
@@ -42,6 +47,10 @@ class TrainMLModelForm(forms.Form):
     ]
 
     name = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+    )
     dataset = forms.ModelChoiceField(
         queryset=Dataset.objects.none(),
         empty_label="Select a dataset to train on",
