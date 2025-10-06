@@ -146,11 +146,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CELERY SETTINGS
 # Use a self-contained SQLite file as the broker for local development
 CELERY_BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
+
 # Use the django-celery-results backend to store results in the main database
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
 # Setting to address the CPendingDeprecationWarning for Celery 6.0
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 

@@ -2,7 +2,6 @@
 import io
 
 import pandas as pd
-from autogluon.tabular import TabularPredictor
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction

@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Live Status Polling for Training Models ---
     const trainingRows = document.querySelectorAll('tr[data-is-training="true"]');
     if (trainingRows.length > 0) {
-        const pollingInterval = 5000; // 5 seconds
+        const pollingInterval = 10000;
         const activePollers = new Map();
 
         const pollStatus = async (modelId, rowElement) => {

@@ -1,5 +1,5 @@
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 
 
 def home(request):

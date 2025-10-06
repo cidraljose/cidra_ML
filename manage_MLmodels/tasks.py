@@ -28,7 +28,6 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
     A Celery task to train an AutoGluon model in the background.
     """
 
-    # Ensure the MLModel instance exists
     logger.info(f"Starting training task for MLModel ID: {model_id}")
     try:
         model_instance = MLModel.objects.get(id=model_id)
@@ -98,6 +97,7 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         )
         error_trace = traceback.format_exc()
         model_instance.status = "FAILED"
+
         # Store the detailed error in the description field for debugging
         model_instance.description = (
             f"Training failed: {str(e)}\n\nTraceback:\n{error_trace}"

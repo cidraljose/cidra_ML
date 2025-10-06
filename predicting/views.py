@@ -5,11 +5,8 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from autogluon.tabular import TabularPredictor
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -77,8 +74,7 @@ def predicting(request):
                 if not manual_data_rows:
                     raise ValueError("No data submitted for manual prediction.")
 
-                # Get or create a single placeholder dataset for all manual predictions.
-                # This dataset will be excluded from the main list view.
+                # Get or create a single placeholder dataset for manual predictions
                 manual_placeholder_dataset, _ = Dataset.objects.get_or_create(
                     name="--manual-data--",
                     defaults={
@@ -108,14 +104,11 @@ def predicting(request):
             except Exception as e:
                 messages.error(request, f"An error occurred during prediction: {e}")
 
-    # This block runs for GET requests or if a POST fails validation
+    # TRuns for GET requests or if a POST fails validation
     dataset_form = PredictionForm(prefix="dataset", user=request.user)
     model_selection_form = ModelSelectionForm(prefix="manual", user=request.user)
     if request.method == "POST" and "submit_dataset" in request.POST:
-        dataset_form = PredictionForm(
-            request.POST, prefix="dataset", user=request.user
-        )  # Re-bind with errors
-
+        dataset_form = PredictionForm(request.POST, prefix="dataset", user=request.user)
     history = (
         PredictionResult.objects.filter(model__uploaded_by=request.user)
         .select_related("model", "dataset")
@@ -141,7 +134,7 @@ def visualize_prediction(request, result_id):
     ml_model = result.model
     plot_data = None
 
-    # Get features from the model, excluding the target variable
+    # Get features from the model excluding target
     features = [f for f in ml_model.features if f != ml_model.target]
 
     if request.method == "POST":
@@ -150,7 +143,7 @@ def visualize_prediction(request, result_id):
             selected_feature = form.cleaned_data["feature"]
             selected_feature2 = form.cleaned_data.get("feature2")
             try:
-                # Read the prediction data from the stored file
+                # Read the prediction data from stored file
                 prediction_df = pd.read_csv(result.prediction_file.path)
                 predicted_column = f"predicted_{ml_model.target}"
 
@@ -165,11 +158,9 @@ def visualize_prediction(request, result_id):
                 ):
                     raise ValueError("Selected feature or prediction column not found.")
 
-                # Generate plot
                 fig = plt.figure(figsize=(10, 7))
 
-                if selected_feature2:
-                    # 3D Plot
+                if selected_feature2:  # 3D Plot
                     ax = fig.add_subplot(111, projection="3d")
                     scatter = ax.scatter(
                         prediction_df[selected_feature],
@@ -178,14 +169,12 @@ def visualize_prediction(request, result_id):
                         c=prediction_df[predicted_column],
                         cmap="viridis",
                     )
-                    # Add a color bar which acts as a legend for the colors
                     cbar = fig.colorbar(scatter, shrink=0.35, aspect=20)
                     cbar.set_label(predicted_column)
                     ax.set_xlabel(selected_feature)
                     ax.set_ylabel(selected_feature2)
                     ax.set_zlabel(predicted_column)
-                else:
-                    # 2D Plot
+                else:  # 2D Plot
                     sns.scatterplot(
                         data=prediction_df, x=selected_feature, y=predicted_column
                     )

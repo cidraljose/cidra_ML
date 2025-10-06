@@ -40,7 +40,7 @@ def get_dataset_columns(request, dataset_id):
     elif isinstance(cols_field, (list, tuple)):
         columns = list(cols_field)
     else:
-        # Generic attempt (e.g., JSONField with keys())
+        # Generic attempt
         try:
             columns = list(cols_field.keys())
         except Exception:
@@ -73,7 +73,7 @@ def manage_MLmodels(request):
                 uploaded_file = upload_form.cleaned_data["file"]
                 model_name = upload_form.cleaned_data["name"]
 
-                # Handle zipped AutoGluon model directories
+                # Handle zipped AutoGluon model
                 if uploaded_file.name.endswith(".zip"):
                     model_storage_path = os.path.join("MLmodels", model_name)
                     final_model_dir = os.path.join(
@@ -107,9 +107,9 @@ def manage_MLmodels(request):
                                     temp_predictor = TabularPredictor.load(source_dir)
                                     auto_features = temp_predictor.features()
                                 except Exception:
-                                    pass  # Ignore if predictor can't be loaded
+                                    pass
 
-                                # Use form features if provided, otherwise use auto-detected
+                                # Use form features if provided, otherwise auto detected
                                 form_features_raw = upload_form.cleaned_data.get(
                                     "features"
                                 )
@@ -120,7 +120,7 @@ def manage_MLmodels(request):
                                 else:
                                     features_list = auto_features
 
-                                # Copy the contents to the final destination
+                                # Copy contents to final destination
                                 shutil.copytree(source_dir, final_model_dir)
 
                                 MLModel.objects.create(
@@ -140,12 +140,12 @@ def manage_MLmodels(request):
                                     "file", f"Failed to process zip file: {e}"
                                 )
                 else:
-                    # Handle non-zip files (or show an error if only zips are allowed)
+                    # Handle non-zip files
                     upload_form.add_error(
                         "file", "Invalid file type. Only .zip archives are allowed."
                     )
 
-            # If form is still valid (no errors added), redirect
+            # If form is still valid redirect
             if upload_form.is_valid():
                 return redirect("manage_MLmodels_view")
 
@@ -173,7 +173,7 @@ def manage_MLmodels(request):
                 except Dataset.DoesNotExist:
                     pass
 
-            # Save current selections to re-display in the template/JS if there's an error
+            # Save current selections to display in the template/JS
             selected_target = request.POST.get("train-target", "")
             selected_features = request.POST.getlist("train-features")
 
@@ -226,7 +226,7 @@ def manage_MLmodels(request):
         else:
             train_form = TrainMLModelForm(prefix="train", user=request.user)
 
-    # Prepare JSON-friendly selected_features for use in the JS template
+    # Prepare selected_features for use
     selected_features_json = json.dumps(selected_features)
 
     # Filter models by the logged-in user
@@ -323,7 +323,6 @@ def visualize_MLmodel(request, MLmodel_id):
     """
     model_obj = get_object_or_404(MLModel, id=MLmodel_id, uploaded_by=request.user)
     # Get all test results to be listed in a dropdown
-    # Assuming TestResult is linked to MLModel which is now user-specific
     test_results = model_obj.test_results.order_by("-test_date").all()
 
     context = {
@@ -349,7 +348,6 @@ def get_leaderboard_data(request, result_id):
     if test_result and test_result.leaderboard_data:
         try:
             # Reconstruct the DataFrame from the 'split' dictionary format
-            # The format is: {'index': [...], 'columns': [...], 'data': [[...], ...]}
             lb_dict = test_result.leaderboard_data
             df = pd.DataFrame(lb_dict["data"], columns=lb_dict["columns"])
 

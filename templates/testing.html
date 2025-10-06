@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Tab Management ---
-    // On page load, check if there's a URL hash and activate the corresponding tab.
+    // On page load, check if theres a URL hash and activate the corresponding tab.
     const hash = window.location.hash;
     if (hash) {
         const tabToActivate = document.querySelector(`button[data-bs-target="${hash}"]`);
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Live Status Polling for Test Results ---
     const activePollers = new Map();
-    const pollingInterval = 5000; // 5 seconds
+    const pollingInterval = 10000;
 
     const pollStatus = async (resultId, rowElement) => {
         const url = `{% url 'get_test_result_row_partial_view' 0 %}`.replace('0', resultId);

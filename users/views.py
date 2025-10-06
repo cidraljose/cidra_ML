@@ -30,8 +30,7 @@ def register_view(request):
             messages.success(request, "Registration successful.")
             return redirect("home_view")
         else:
-            # If form is invalid, re-render home page with the form and errors
-            # We'll handle passing the form back to the home view logic
+            # If form is invalid, render home page with the form and errors
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field.capitalize()}: {error}")

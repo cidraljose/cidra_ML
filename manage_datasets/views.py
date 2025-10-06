@@ -9,7 +9,7 @@ import pandas as pd
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import MergeDatasetsForm, SplitDatasetForm, UploadCSVForm
@@ -159,13 +159,12 @@ def manage_datasets(request):
                             df = df[selected_columns].reset_index(drop=True)
                             dataframes_to_merge.append(df)
 
-                        # Merge dataframes vertically (append rows)
-                        # ignore_index=True will create a new clean index for the merged dataframe
+                        # Merge dataframes vertically
                         merged_df = pd.concat(
                             dataframes_to_merge, axis=0, ignore_index=True
                         )
 
-                        # Create the new dataset instance
+                        # Create new dataset instance
                         _create_dataset_instance(
                             name=new_name,
                             description=f"Merged from {', '.join([d.name for d in selected_datasets])}",

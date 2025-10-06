@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Live Status Polling for Prediction Results ---
     const activePollers = new Map();
-    const pollingInterval = 5000; // 5 seconds
+    const pollingInterval = 10000;
 
     const pollStatus = async (resultId, rowElement) => {
         // This URL needs to be created in predicting/urls.py and predicting/views.py
