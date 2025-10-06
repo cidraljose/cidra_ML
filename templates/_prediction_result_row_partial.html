@@ -1,0 +1,27 @@
+<td>{{ result.prediction_date|date:"Y-m-d H:i" }}</td>
+<td>{{ result.model.name }}</td>
+<td>{{ result.dataset.name|default:"Manual Entry" }}</td>
+<td>
+    {% if result.status == 'PENDING' %}
+    <span class="badge bg-secondary">{{ result.get_status_display }}</span>
+    {% elif result.status == 'RUNNING' %}
+    <span class="badge bg-warning text-dark">{{ result.get_status_display }} <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+    {% elif result.status == 'COMPLETED' %}
+    <span class="badge bg-success">{{ result.get_status_display }}</span>
+    {% elif result.status == 'FAILED' %}
+    <span class="badge bg-danger">{{ result.get_status_display }}</span>
+    {% endif %}
+</td>
+<td>
+    <button class="btn btn-sm btn-info visualize-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#visualizeModal" title="Visualize prediction results" {% if result.status != 'COMPLETED' %}disabled{% endif %}>
+        Visualize
+    </button>
+    <a href="{% url 'download_prediction_view' result.id %}" class="btn btn-sm btn-success" title="Download dataset with predictions" {% if result.status != 'COMPLETED' %}disabled{% endif %}>
+        Download
+    </a>
+    <!-- Delete Form -->
+    <form method="post" action="{% url 'delete_prediction_view' result.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this prediction result?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+    </form>
+</td>

@@ -99,28 +99,14 @@
                             <th>Date</th>
                             <th>Model</th>
                             <th>Input Dataset</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for result in history %}
-                        <tr>
-                            <td>{{ result.prediction_date|date:"Y-m-d H:i" }}</td>
-                            <td>{{ result.model.name }}</td>
-                            <td>{{ result.dataset.name|default:"Manual Entry" }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info visualize-btn" data-result-id="{{ result.id }}" data-bs-toggle="modal" data-bs-target="#visualizeModal" title="Visualize prediction results">
-                                    Visualize
-                                </button>
-                                <a href="{% url 'download_prediction_view' result.id %}" class="btn btn-sm btn-success" title="Download dataset with predictions">
-                                    Download
-                                </a>
-                                <!-- Delete Form -->
-                                <form method="post" action="{% url 'delete_prediction_view' result.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this prediction result?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                </form>
-                            </td>
+                        <tr id="prediction-row-{{ result.id }}" data-status="{{ result.status }}">
+                            {% include "_prediction_result_row_partial.html" %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -151,6 +137,7 @@
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -229,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(`/predicting/get-model-features/${modelId}/`)
                 .then(response => {
                     if (!response.ok) {
-                        // Throw an error to be caught by the .catch block
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
@@ -349,6 +335,48 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    // --- Live Status Polling for Prediction Results ---
+    const activePollers = new Map();
+    const pollingInterval = 5000; // 5 seconds
+
+    const pollStatus = async (resultId, rowElement) => {
+        // This URL needs to be created in predicting/urls.py and predicting/views.py
+        const url = `{% url 'get_prediction_result_row_partial_view' 0 %}`.replace('0', resultId);
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            
+            const newRowHtml = await response.text();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = `<table><tbody><tr data-status="TEMP">${newRowHtml}</tr></tbody></table>`;
+            const newStatus = tempDiv.querySelector('tr').dataset.status;
+
+            // Replace the old row content with the new one.
+            rowElement.innerHTML = newRowHtml;
+            rowElement.dataset.status = newStatus; // Update the status attribute
+
+            // If the new status is final, stop polling.
+            if (newStatus === 'COMPLETED' || newStatus === 'FAILED') {
+                clearInterval(activePollers.get(resultId));
+                activePollers.delete(resultId);
+            }
+        } catch (error) {
+            console.error(`Failed to poll status for result ${resultId}:`, error);
+            clearInterval(activePollers.get(resultId)); // Stop on error
+            activePollers.delete(resultId);
+        }
+    };
+
+    // Find all rows that are currently pending or running and start polling them.
+    document.querySelectorAll('tr[data-status="PENDING"], tr[data-status="RUNNING"]').forEach(row => {
+        const resultId = row.id.split('-').pop();
+        if (resultId && !activePollers.has(resultId)) {
+            const intervalId = setInterval(() => pollStatus(resultId, row), pollingInterval);
+            activePollers.set(resultId, intervalId);
+        }
+    });
 });
 </script>
 {% endblock %}

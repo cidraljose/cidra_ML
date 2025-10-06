@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -20,6 +21,7 @@ from manage_MLmodels.models import MLModel
 
 from .forms import FeatureSelectionForm, ModelSelectionForm, PredictionForm
 from .models import PredictionResult
+from .tasks import run_prediction_task
 
 
 @login_required
@@ -34,39 +36,18 @@ def predicting(request):
                     ml_model = dataset_form.cleaned_data["model"]
                     dataset = dataset_form.cleaned_data["dataset"]
 
-                    # Load data and drop target column if it exists
-                    input_data = pd.read_csv(dataset.file.path)
-                    data_for_prediction = input_data.copy()
-                    if ml_model.target in data_for_prediction.columns:
-                        data_for_prediction = data_for_prediction.drop(
-                            columns=[ml_model.target]
-                        )
-
-                    predictor = TabularPredictor.load(ml_model.file.path)
-                    predictions = predictor.predict(data_for_prediction)
-
-                    output_df = input_data.copy()
-                    output_df[f"predicted_{ml_model.target}"] = predictions
-
-                    csv_buffer = io.StringIO()
-                    output_df.to_csv(csv_buffer, index=False)
-                    csv_content = ContentFile(csv_buffer.getvalue().encode("utf-8"))
-
-                    base_name, ext = os.path.splitext(
-                        os.path.basename(dataset.file.name)
-                    )
-                    prediction_filename = f"{base_name}_predicted.csv"
-
                     result = PredictionResult(
                         model=ml_model,
                         dataset=dataset,
+                        status=PredictionResult.STATUS_PENDING,
                     )
-                    result.prediction_file.save(
-                        prediction_filename, csv_content, save=True
-                    )
+                    result.save()
+
+                    transaction.on_commit(lambda: run_prediction_task.delay(result.id))
+
                     messages.success(
                         request,
-                        f"Prediction for '{dataset.name}' using '{ml_model.name}' is complete. See history for download.",
+                        f"Prediction for '{dataset.name}' has started. See history for progress.",
                     )
                     return redirect(reverse("predicting_view") + "#history-panel")
                 except Exception as e:
@@ -96,20 +77,6 @@ def predicting(request):
                 if not manual_data_rows:
                     raise ValueError("No data submitted for manual prediction.")
 
-                input_df = pd.DataFrame(manual_data_rows)
-
-                predictor = TabularPredictor.load(ml_model.file.path)
-                predictions = predictor.predict(input_df)
-
-                output_df = input_df.copy()
-                output_df[f"predicted_{ml_model.target}"] = predictions
-
-                csv_buffer = io.StringIO()
-                output_df.to_csv(csv_buffer, index=False)
-                csv_content = ContentFile(csv_buffer.getvalue().encode("utf-8"))
-
-                prediction_filename = f"manual_prediction_{ml_model.id}.csv"
-
                 # Get or create a single placeholder dataset for all manual predictions.
                 # This dataset will be excluded from the main list view.
                 manual_placeholder_dataset, _ = Dataset.objects.get_or_create(
@@ -122,13 +89,19 @@ def predicting(request):
                 )
 
                 result = PredictionResult(
-                    model=ml_model, dataset=manual_placeholder_dataset
+                    model=ml_model,
+                    dataset=manual_placeholder_dataset,
+                    status=PredictionResult.STATUS_PENDING,
                 )
-                result.prediction_file.save(prediction_filename, csv_content, save=True)
+                result.save()
+
+                transaction.on_commit(
+                    lambda: run_prediction_task.delay(result.id, manual_data_rows)
+                )
 
                 messages.success(
                     request,
-                    f"Manual prediction using '{ml_model.name}' is complete. See history for download.",
+                    f"Manual prediction using '{ml_model.name}' has started. See history for progress.",
                 )
                 return redirect(reverse("predicting_view") + "#history-panel")
 
@@ -285,3 +258,15 @@ def delete_prediction_result(request, result_id):
         messages.success(request, "The prediction result has been deleted.")
         return redirect(reverse("predicting_view") + "#history-panel")
     raise Http404()
+
+
+@login_required
+@require_GET
+def get_prediction_result_row_partial(request, result_id):
+    """
+    Returns the HTML for a single prediction result table row to enable live updates.
+    """
+    result = get_object_or_404(
+        PredictionResult, pk=result_id, model__uploaded_by=request.user
+    )
+    return render(request, "_prediction_result_row_partial.html", {"result": result})

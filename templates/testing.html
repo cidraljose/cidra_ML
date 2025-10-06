@@ -141,99 +141,6 @@
 <script>
 // Runs only after the HTML document has been fully loaded
 document.addEventListener('DOMContentLoaded', function () {
-    // Get references to the HTML elements
-    const modelSelect = document.getElementById('id_model');
-    const datasetSelect = document.getElementById('id_dataset');
-
-    // Elements for displaying model information
-    const modelInfoContainer = document.getElementById('model-info-container');
-    const modelTargetEl = document.getElementById('model-target');
-    const modelFeaturesEl = document.getElementById('model-features');
-
-    // Elements for displaying dataset information
-    const datasetInfoContainer = document.getElementById('dataset-info-container');
-    const datasetColumnsEl = document.getElementById('dataset-columns');
-
-    // URLs for fetching data using Django's `url` tag. '0' is a placeholder for the ID.
-    const modelDetailsUrlTemplate = "/models/PLACEHOLDER/details/";
-    const datasetColumnsUrlTemplate = "/datasets/PLACEHOLDER/columns/";
-
-    function buildUrl(template, id) {
-        if (!id) return null;
-        return template.replace('PLACEHOLDER', id);
-    }
-
-    function renderList(element, items) {
-        // Clear any previous list items.
-        element.innerHTML = '';
-        if (items && items.length > 0) {
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item py-1';
-                li.textContent = item;
-                element.appendChild(li);
-            });
-        // If the list is empty, show a helpful message.
-        } else {
-            const li = document.createElement('li');
-            li.className = 'list-group-item py-1 text-muted';
-            li.textContent = 'No items to display.';
-            element.appendChild(li);
-        }
-    }
-
-    // Asynchronous function to fetch and display model details.
-    async function fetchModelDetails(modelId) {
-        const url = buildUrl(modelDetailsUrlTemplate, modelId);
-         if (!url) {
-            modelInfoContainer.classList.add('d-none'); // If no model is selected, hide the info
-            return;
-        }
-        try {
-            // Fetch data from the server's API endpoint
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch model details');
-            const data = await response.json();
-
-            // Populate the HTML elements with the received data
-            modelTargetEl.textContent = data.target || 'Not specified';
-            renderList(modelFeaturesEl, data.features);
-            
-            modelInfoContainer.classList.remove('d-none'); // Make info box visible
-        } catch (error) {
-            console.error(error);
-            modelInfoContainer.classList.add('d-none');
-        }
-    }
-
-    async function fetchDatasetColumns(datasetId) {
-        const url = buildUrl(datasetColumnsUrlTemplate, datasetId);
-        if (!url) {
-            datasetInfoContainer.classList.add('d-none');
-            return;
-        }
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch dataset columns');
-            const data = await response.json();
-
-            renderList(datasetColumnsEl, data.columns);
-            datasetInfoContainer.classList.remove('d-none');
-        } catch (error) {
-            console.error(error);
-            datasetInfoContainer.classList.add('d-none');
-        }
-    }
-
-    // Attach event listeners to the dropdowns
-    // When a change occurs, call the appropriate fetch function
-    modelSelect.addEventListener('change', (e) => fetchModelDetails(e.target.value));
-    datasetSelect.addEventListener('change', (e) => fetchDatasetColumns(e.target.value));
-
-    // Initial load if values are pre-selected
-    if (modelSelect.value) fetchModelDetails(modelSelect.value);
-    if (datasetSelect.value) fetchDatasetColumns(datasetSelect.value);
-
     // --- Modal Logic ---
     const resultsModal = document.getElementById('resultsModal');
     if (resultsModal) {
@@ -280,17 +187,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error(error);
                 metricsTable.innerHTML = '<tbody><tr><td>Failed to load results.</td></tr></tbody>';
             }
-        });
-    }
-
-    // --- Error Modal Logic ---
-    const errorModal = document.getElementById('errorModal');
-    if (errorModal) {
-        errorModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const errorTrace = button.getAttribute('data-error-trace');
-            const errorContentEl = document.getElementById('error-trace-content');
-            errorContentEl.textContent = errorTrace || 'No error details available.';
         });
     }
 

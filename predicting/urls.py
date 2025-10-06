@@ -4,6 +4,7 @@ from .views import (
     delete_prediction_result,
     download_prediction_file,
     get_model_features,
+    get_prediction_result_row_partial,
     predicting,
     visualize_prediction,
 )
@@ -29,5 +30,10 @@ urlpatterns = [
         "predicting/delete/<int:result_id>/",
         delete_prediction_result,
         name="delete_prediction_view",
+    ),
+    path(
+        "predicting/results/<int:result_id>/row/",
+        get_prediction_result_row_partial,
+        name="get_prediction_result_row_partial_view",
     ),
 ]
