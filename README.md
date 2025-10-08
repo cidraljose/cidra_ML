@@ -17,7 +17,7 @@ Follow these steps to set up and run the project on your local machine.
 If you have Git installed on your machine, clone the repository using the following command:
 
 ```bash
-git clone <https://github.com/cidraljose/cidra_ML.git>
+git clone https://github.com/cidraljose/cidra_ML.git
 cd cidra_ML
 ```
 
