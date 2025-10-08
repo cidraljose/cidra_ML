@@ -47,7 +47,6 @@ pip install -r requirements.txt
 This command will set up your SQLite database with the necessary tables.
 
 ```bash
-python manage.py makemigrations
 python manage.py migrate
 ```
 
