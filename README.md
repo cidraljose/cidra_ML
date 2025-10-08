@@ -25,7 +25,8 @@ Otherwise, you can just download the project as a zip file and extract it.
 
 ### 2. Set Up a Virtual Environment
 
-It's recommended to use a virtual environment to manage the project dependencies. If you don't want to create a virtual environment, you can skip this step.
+It's recommended to use a virtual environment to manage the project dependencies. 
+But if you don't want to create a virtual environment, you can just skip this step.
 
 Open a `CMD` terminal inside the project directory and run the following commands.
 
@@ -36,7 +37,7 @@ python -m venv .venv
 
 ### 3. Install Dependencies
 
-Install all the required Python libraries.
+Install all the required Python libs.
 
 ```bash
 pip install -r requirements.txt
@@ -44,7 +45,7 @@ pip install -r requirements.txt
 
 ### 4. Apply Database Migrations
 
-This command will set up your SQLite database with the necessary tables.
+This command will set up the SQLite database with the necessary tables, synchronizing the database structures with the models defined in the project.
 
 ```bash
 python manage.py migrate
@@ -61,7 +62,7 @@ python manage.py runserver
 ```
 
 **Terminal 2: Start the Celery Worker**
-The Celery worker is responsible for running all the background tasks (training, evaluation, prediction). The `-P solo` flag is recommended for running on Windows.
+The Celery worker is responsible for running all the background tasks (training, evaluation, prediction). The `-P solo` flag is used for running on Windows.
 
 ```bash
 celery -A cidra_ML worker -l info -P solo
