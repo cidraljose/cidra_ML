@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Event delegation for delete buttons
                         const tableBody = document.querySelector('#manual-prediction-table tbody');
                         tableBody.addEventListener('click', function(e) {
-                            // Use .closest() to handle clicks on the icon inside the button
+                            // Handle clicks on the icon inside the button
                             const deleteButton = e.target.closest('.delete-row-btn');
                             if (deleteButton) {
                                 // Prevent deleting the last row

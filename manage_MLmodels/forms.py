@@ -15,7 +15,7 @@ class UploadMLModelForm(forms.Form):
     )
     target = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
     features = forms.CharField(
-        required=False,
+        required=True,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         help_text="Comma-separated list of feature names. Will be auto-filled if found in the model.",
     )
@@ -31,9 +31,13 @@ class UploadMLModelForm(forms.Form):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         if user:
-            self.fields["related_dataset"].queryset = Dataset.objects.filter(
-                uploaded_by=user
-            ).order_by("name")
+            self.fields["related_dataset"].queryset = (
+                Dataset.objects.filter(
+                    uploaded_by=user,
+                )
+                .exclude(name="--manual-data--")
+                .order_by("name")
+            )
 
 
 class TrainMLModelForm(forms.Form):
@@ -91,6 +95,10 @@ class TrainMLModelForm(forms.Form):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         if user:
-            self.fields["dataset"].queryset = Dataset.objects.filter(
-                uploaded_by=user
-            ).order_by("name")
+            self.fields["dataset"].queryset = (
+                Dataset.objects.filter(
+                    uploaded_by=user,
+                )
+                .exclude(name="--manual-data--")
+                .order_by("name")
+            )

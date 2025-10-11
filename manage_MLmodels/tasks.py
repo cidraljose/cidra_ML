@@ -64,11 +64,15 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         # Train the model
         logger.info("Starting AutoGluon predictor.fit()...")
         start_time = time.time()
-        predictor = TabularPredictor(path=model_path, label=target).fit(
+
+        predictor = TabularPredictor(
+            path=model_path, label=target, problem_type="regression", verbosity=2
+        ).fit(
             train_data=train_data,
             time_limit=time_limit,
             presets=presets,
         )
+
         end_time = time.time()
         duration_seconds = end_time - start_time
         logger.info("Model training complete.")
@@ -91,17 +95,31 @@ def train_autogluon_model(model_id, dataset_id, target, features, time_limit, pr
         logger.info(f"Task for MLModel ID: {model_id} completed successfully.")
 
     except Exception as e:
-        # The model_instance is guaranteed to exist here.
         logger.error(
             f"An error occurred during training for MLModel ID: {model_id}. Error: {e}"
         )
         error_trace = traceback.format_exc()
+
         model_instance.status = "FAILED"
 
-        # Store the detailed error in the description field for debugging
-        model_instance.description = (
-            f"Training failed: {str(e)}\n\nTraceback:\n{error_trace}"
-        )
+        error_message = f"Training failed: {str(e)}\n\nTraceback:\n{error_trace}"
+        if "No models were trained successfully" in str(e):
+            try:
+                # Check if the target column is non-numeric, which is a common cause
+                dataset_instance = Dataset.objects.get(id=dataset_id)
+                df = pd.read_csv(dataset_instance.file.path)
+                if not pd.api.types.is_numeric_dtype(df[target]):
+                    error_message = (
+                        "Training failed: Invalid data type for the target column.\n\n"
+                        "The selected target column appears to contain non-numeric data (e.g., text). "
+                        "Regression models require a target column with only numerical values."
+                    )
+            except Exception as check_e:
+                logger.warning(
+                    f"Could not perform data type check for custom error. Fallback to default. Reason: {check_e}"
+                )
+
+        model_instance.description = error_message
         model_instance.save()
     finally:
         # Always restore the original stdout/stderr
