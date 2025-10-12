@@ -16,6 +16,9 @@ __pycache__/
 media/
 db.sqlite3
 
+# Local settings
+local_settings.py
+
 # Celery specific
 celerydb.sqlite
 celerybeat-schedule

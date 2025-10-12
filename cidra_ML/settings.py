@@ -20,15 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# It's recommended to load the secret key from an environment variable
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-8=lra$0ric7thr70h3!$dqt#m$z=0nv926z45b2#-x0p2j9+xc",
-)
+# The secret key is loaded from an environment variable or local_settings.py.
+# Do not hardcode it here.
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-
-DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -160,3 +157,16 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 LOGIN_REDIRECT_URL = "manage_datasets_view"
 LOGOUT_REDIRECT_URL = "home_view"
 LOGIN_URL = "home_view"
+
+# Import local settings
+try:
+    from .local_settings import *
+except ImportError:
+    if not SECRET_KEY:
+        raise ImportError(
+            "SECRET_KEY must be set in environment variables or local_settings.py"
+        )
+    if DEBUG:
+        raise ImportError(
+            "Do not run in DEBUG mode in production without a local_settings.py file."
+        )
