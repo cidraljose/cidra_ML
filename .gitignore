@@ -15,6 +15,7 @@ __pycache__/
 # User-generated media and databases
 media/
 db.sqlite3
+local_settings.py
 
 # Local settings
 local_settings.py
