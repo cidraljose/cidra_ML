@@ -4,74 +4,6 @@ Cidra-ML is a user-friendly web application designed to simplify the machine lea
 
 The platform provides an intuitive interface for users to upload and manage their datasets, train new models, evaluate their performance, and use them to make predictions.
 
-## Getting Started: Running Locally
-
-Follow these steps to set up and run the project on your local machine.
-
-### Prerequisites
-
-- Python 3.8+
-
-### 1. Clone the Repository
-
-If you have Git installed on your machine, clone the repository using the following command:
-
-```bash
-git clone https://github.com/cidraljose/cidra_ML.git
-cd cidra_ML
-```
-
-Otherwise, you can just download the project as a zip file and extract it.
-
-### 2. Set Up a Virtual Environment
-
-It's recommended to use a virtual environment to manage the project dependencies. 
-But if you don't want to create a virtual environment, you can just skip this step.
-
-Open a `CMD` terminal inside the project directory and run the following commands.
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-Install all the required Python libs.
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Apply Database Migrations
-
-This command will set up the SQLite database with the necessary tables, synchronizing the database structures with the models defined in the project.
-
-```bash
-python manage.py migrate
-```
-
-### 5. Run the Application
-
-You will need to run two processes in separate terminals.
-
-**Terminal 1: Start the Django Development Server**
-
-```bash
-python manage.py runserver
-```
-
-**Terminal 2: Start the Celery Worker**
-The Celery worker is responsible for running all the background tasks (training, evaluation, prediction). The `-P solo` flag is used for running on Windows.
-
-```bash
-celery -A cidra_ML worker -l info -P solo
-```
-
-### 6. Access the Application
-
-Open your web browser and navigate to **`http://127.0.0.1:8000/`**. You can now register a new user and start using Cidra-ML!
-
 ## About the application features
 
 ### 1. User Authentication
@@ -146,3 +78,75 @@ The project is organized into several Django apps, each with a specific responsi
 - `testing/`: Contains the views, tasks, and models for evaluating model performance.
 - `predicting/`: Contains the views, tasks, and models for making predictions.
 - `templates/`: A central directory for all HTML templates, including the base layout and partials for reusable components.
+
+## Getting Started: Access onlinelink
+
+<Insert link here>
+
+## Getting Started: Running Locally
+
+If you prefeer to run the project locally, follow these steps to set up and run the project on your local machine.
+
+_Note: These steps were done on Windows. For other operational systems, it will be necessary to adapt the following commands._
+
+### Prerequisites
+
+- Python 3.8+
+
+### 1. Clone the Repository
+
+If you have Git installed on your machine, clone the repository using the following command:
+
+```bash
+git clone https://github.com/cidraljose/cidra_ML.git
+cd cidra_ML
+```
+
+Otherwise, you can just download the project as a zip file and extract it.
+
+### 2. Set Up a Virtual Environment (Optional)
+
+Open a `CMD` terminal inside the project directory and run the following commands.
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+Install all the required Python libs.
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Apply Database Migrations
+
+This command will set up the SQLite database with the necessary tables, synchronizing the database structures with the models defined in the project.
+
+```bash
+python manage.py migrate
+```
+
+### 5. Run the Application
+
+You will need to run two processes in separate terminals.
+
+**Terminal 1: Start the Django Development Server**
+
+```bash
+python manage.py runserver
+```
+
+**Terminal 2: Start the Celery Worker**
+
+The Celery worker is responsible for running all the background tasks (training, evaluation, prediction). The `-P solo` flag is used for running on Windows.
+
+```bash
+celery -A cidra_ML worker -l info -P solo
+```
+
+### 6. Access the Application
+
+Open your web browser and navigate to **`http://127.0.0.1:8000/`**. You can now register a new user and start using Cidra-ML locally!
