@@ -17,7 +17,7 @@
 <div class="card mt-3">
     <div class="card-body">
         <h5 class="card-title">Generate Plot</h5>
-        <p class="card-text">Select a feature or two to plot against the prediction.</p>
+        <p class="card-text">Select one or two features to plot against the model's prediction. This helps visualize the relationship between the input data and the predicted outcome. </p>
         <form method="post" id="visualize-form" action="{% url 'visualize_prediction_view' result.id %}">
             {% csrf_token %}
             <div class="row">
