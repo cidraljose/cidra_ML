@@ -3,6 +3,7 @@
 {% block content %} 
 
 <h2 class="mb-4">Dataset Management</h2>
+<p class="mb-4">This page allows you to manage your datasets through the four tabs shown below.</p>
 
 <!-- Tabs for different actions -->
 <ul class="nav nav-tabs" id="datasetTabs" role="tablist">
@@ -23,7 +24,9 @@
 <div class="tab-content" id="datasetTabsContent">
     <!-- Panel 1: List available datasets -->
     <div class="tab-pane fade show active" id="list-panel" role="tabpanel" aria-labelledby="list-tab">
-        <div class="table-responsive mt-3">
+        <p class="mt-3">Here you can visualize the information about your uploaded datasets, such as: name, description, number of rows, and column names/types.<br>
+        It's also possible to download, delete, and visualize each dataset using the "Actions" section.</p>
+        <div class="table-responsive">
             <table class="table table-bordered table-hover">
                 <thead class="table-light">
                     <tr>
@@ -65,6 +68,7 @@
 
     <!-- Panel 2: Upload new data -->
     <div class="tab-pane fade" id="upload-panel" role="tabpanel" aria-labelledby="upload-tab">
+        <p class="mt-3">Use this section to upload a new dataset. The file must be in CSV format. You can provide a name and a brief description for easy identification later.</p>
         <div class="card card-body mt-3">
             <h5 class="card-title">Add New Data</h5>
             <form method="post" enctype="multipart/form-data">
@@ -85,6 +89,7 @@
 
     <!-- Panel 3: Split a dataset -->
     <div class="tab-pane fade" id="split-panel" role="tabpanel" aria-labelledby="split-tab">
+        <p class="mt-3">This tool allows you to split an existing dataset into two separate sets for training and testing machine learning models. Select a dataset, specify the split ratio, and new datasets will be created.</p>
         <div class="card card-body mt-3">
             <h5 class="card-title">Split a Dataset into Training and Test Sets</h5>
             <p class="card-text">This will create two new datasets: `(name)_train` and `(name)_test`.</p>
@@ -106,6 +111,7 @@
 
     <!-- Panel 4: Merge datasets -->
     <div class="tab-pane fade" id="merge-panel" role="tabpanel" aria-labelledby="merge-tab">
+        <p class="mt-3">Here you can merge two or more datasets into a single new one. The datasets will be appended vertically (row-wise), and you can select which columns to include from each.</p>
         <div class="card card-body mt-3">
             <h5 class="card-title">Merge Multiple Datasets</h5>
             <p class="card-text">Select multiple datasets to merge them vertically (append rows). The new dataset will contain rows from all selected datasets. Columns will be aligned by name.</p>
