@@ -10,18 +10,28 @@
         </button>
     </div>
 </div><div class="card-body">
-    <div class="mt-3">
-        <h4>Profile (first 5 rows)</h4>
+    <div class="mt-3" text-center>
+        <h4>Profile text-center</h4>
+        <p class="mt-3">
+            This section shows the profile of the dataset, displaying its first 5 rows.
+            It's useful to have a major idea of what the data looks like.
+        </p>
         {{ head|safe }}
     </div>
 
-    <div class="mt-4">
+    <div class="mt-4 text-center">
         <h4>Statistics</h4>
+        <p class="mt-3">
+            The statistics for each of the dataset's colloumns: mean; standard deviation (std); minimum value (min); first quartile (25%); median (50%); third quartile (75%); and maximum value (max).
+        </p>
         {{ stats.description|safe }}
     </div>
 
-    <div class="mt-4">
+    <div class="mt-4 text-center">
         <h4>Missing Values</h4>
+        <p class="mt-3">
+            Shows the sum of each column's missing values, if there are any. This is done using histograms.
+        </p>
         {% if stats.missing_values_plot %}
             <img src="data:image/png;base64,{{ stats.missing_values_plot }}" alt="Missing Values Plot" class="img-fluid border rounded">
         {% else %}
@@ -31,10 +41,12 @@
 
     <hr class="my-4">
     <h3 class="mt-4">Plots</h3>
-
     {% if plots.correlation_heatmap %}
     <div class="mt-4 text-center">
         <h4>Correlation Heatmap</h4>
+        <p class="mt-3">
+            This plot shows the correlation coefficients between pairs of numerical variables. The coefficient ranges from -1 to 1, where -1 indicates a perfect negative correlation, 1 indicates a perfect positive correlation, and 0 indicates no correlation.
+        </p>
         <img src="data:image/png;base64,{{ plots.correlation_heatmap }}" alt="Correlation Heatmap" class="img-fluid border rounded">
     </div>
     {% endif %}
@@ -42,6 +54,9 @@
     {% if plots.pdf_plot %}
     <div class="mt-4 text-center">
         <h4>Kernel Density Estimate Plot (using MinMaxScaler)</h4>
+        <p class="mt-3">
+            This plot provides a smoothed-out view of the distribution for each numerical column. To make it easier to compare columns with different scales, all values are adjusted to fit within a 0 to 1 range using a MinMaxScaler. Taller peaks on the graph indicate where the data points are more concentrated.
+        </p>
         <img src="data:image/png;base64,{{ plots.pdf_plot }}" alt="PDF Plot" class="img-fluid border rounded">
     </div>
     {% endif %}
@@ -52,7 +67,8 @@
                 <div class="col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-body text-center">
-                            <h4 class="card-title text-capitalize">Histogram of {{ key|slice:"6:" }}</h4>
+                            <h5 class="card-title text-capitalize">Histogram of {{ key|slice:"6:" }}</h5>
+                            <p class="card-text small">This histogram displays the frequency distribution of values for the '{{ key|slice:"6:" }}' column.</p>
                             <img src="data:image/png;base64,{{ plot_b64 }}" alt="{{ key }} plot" class="img-fluid">
                         </div>
                     </div>

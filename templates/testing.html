@@ -3,6 +3,9 @@
 {% block title %}Test Models - {{ block.super }}{% endblock %}
 
 {% block content %}
+<h2 class="mb-4">Model Testing</h2>
+<p class="mb-4">Use this page to evaluate the performance of your trained models on a test dataset. You can view detailed metrics and plots for each test run and access the history of all evaluations.</p>
+
 <!-- Tab Navigation -->
 <ul class="nav nav-tabs" id="testingTab" role="tablist">
     <li class="nav-item" role="presentation">
@@ -119,12 +122,14 @@
         <div class="row">
             <div class="col-md-5">
                 <h5>Metrics</h5>
+                <p class="small text-muted">This table shows the performance scores of the model on the test dataset. The metrics vary depending on the task (e.g., accuracy for classification, R-squared for regression).</p>
                 <table class="table table-sm" id="modal-metrics-table">
                     <!-- Metrics will be populated by JS -->
                 </table>
             </div>
             <div class="col-md-7">
                 <h5>Plot of Predictions vs. Real Values</h5>
+                <p class="small text-muted">This plot visually compares the model's predictions (Y-axis) against the actual values (X-axis). Points closer to the diagonal line indicate more accurate predictions.</p>
                 <div id="modal-plot-container" class="text-center">
                     <!-- Plot image will be populated by JS -->
                 </div>
